@@ -5,12 +5,14 @@
 SET (qgis2google_SRCS
      qgis2google.cpp
      qgsgoogleearthtool.cpp
+     qgskmlconverter.cpp
      qgskmlsettingsdialog.cpp
 )
 
 SET (qgis2google_MOC_HDRS
      qgis2google.h
      qgsgoogleearthtool.h
+     qgskmlconverter.h
      qgskmlsettingsdialog.h
 )
 

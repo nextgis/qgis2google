@@ -120,6 +120,12 @@ void QgsKmlSettingsDialog::readSettings()
   QColor tmpColor;
   int tmpInt;
   
+  tmpInt = settings.value( "/qgis2google/singlevalue", 1 ).toInt();
+  if ( tmpInt )
+    m_ui->tabWidget->insertTab( 0, m_ui->tabColorStyle, tr( "Color style" ) );
+  else
+    m_ui->tabWidget->removeTab( 0 );
+
   tmpInt = settings.value( "/qgis2google/currenttab", 0 ).toInt();
   m_ui->tabWidget->setCurrentIndex( tmpInt );
   move( settings.value( "/qgis2google/pos", QPoint( 0, 0 ) ).toPoint() );

@@ -35,7 +35,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tabColorStyle">
       <attribute name="title">
@@ -807,6 +807,35 @@ p, li { white-space: pre-wrap; }
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>pbLabelColor</tabstop>
+  <tabstop>sbxLabelOpacity</tabstop>
+  <tabstop>cbLabelColorMode</tabstop>
+  <tabstop>dsbLabelScale</tabstop>
+  <tabstop>pbLineColor</tabstop>
+  <tabstop>sbxLineOpacity</tabstop>
+  <tabstop>cbLineColorMode</tabstop>
+  <tabstop>dsbLineWidth</tabstop>
+  <tabstop>pbPolyColor</tabstop>
+  <tabstop>sbxPolyOpacity</tabstop>
+  <tabstop>cbPolyColorMode</tabstop>
+  <tabstop>cbPolyFill</tabstop>
+  <tabstop>cbPolyOutline</tabstop>
+  <tabstop>chbSettingsForAllLayers</tabstop>
+  <tabstop>buttonBox</tabstop>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>cbPointExtrude</tabstop>
+  <tabstop>cbPointAltitudeMode</tabstop>
+  <tabstop>sbxPointAltitude</tabstop>
+  <tabstop>cbLineExtrude</tabstop>
+  <tabstop>cbLineTessellate</tabstop>
+  <tabstop>cbLineAltitudeMode</tabstop>
+  <tabstop>sbxLineAltitude</tabstop>
+  <tabstop>cbPolyExtrude</tabstop>
+  <tabstop>cbPolyTessellate</tabstop>
+  <tabstop>cbPolyAltitudeMode</tabstop>
+  <tabstop>sbxPolyAltitude</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
