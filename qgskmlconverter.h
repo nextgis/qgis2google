@@ -45,6 +45,7 @@ private:
   QString vlayerStyleId( QgsFeature *feature, QString styleId, const QgsRenderer *renderer );
   QgsSymbol *symbolForFeature( QgsFeature *feature, const QgsUniqueValueRenderer *urenderer );
 
+  QString htmlString( QString in );
   QRgb rgba2abgr( QColor color );
 
   QList<QFile *> mTempKmlFiles;

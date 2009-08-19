@@ -52,7 +52,7 @@
 static const char * const sIdent = "$Id: plugin.cpp 9327 2008-09-14 11:18:44Z jef $";
 static const QString sName = QObject::tr( "qgis2google" );
 static const QString sDescription = QObject::tr( "Quickly send selected objects or layer to Google Earth." );
-static const QString sPluginVersion = QObject::tr( "Version 1.0" );
+static const QString sPluginVersion = QObject::tr( "Version 1.5" );
 static const QgisPlugin::PLUGINTYPE sPluginType = QgisPlugin::UI;
 
 //////////////////////////////////////////////////////////////////////

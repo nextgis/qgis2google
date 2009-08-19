@@ -105,18 +105,18 @@ QString QgsKmlConverter::exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatu
         const QgsUniqueValueRenderer *urenderer = dynamic_cast<const QgsUniqueValueRenderer *>( renderer );
         QgsSymbol *symbol = symbolForFeature( &feature, urenderer );
         if ( symbol )
-          out << "<name>" + symbol->lowerValue() + "</name>" << endl;
+          out << "<name>" + htmlString( symbol->lowerValue() ) + "</name>" << endl;
       }
 
       out << placemarkDescriptionKml( vlayer, feature.attributeMap() ) << endl;
 
       if ( bSingleSymbol )
       {
-        out << "<styleUrl>" << styleId << "</styleUrl>" << endl;
+        out << "<styleUrl>" << htmlString( styleId ) << "</styleUrl>" << endl;
       }
       else // Unique Value
       {
-        out << "<styleUrl>" << vlayerStyleId( &feature, styleId, renderer ) << "</styleUrl>" << endl;
+        out << "<styleUrl>" << htmlString( vlayerStyleId( &feature, styleId, renderer ) ) << "</styleUrl>" << endl;
       }
 
       out << convertWktToKml( wktFormat ) << endl;
@@ -158,7 +158,7 @@ QString QgsKmlConverter::placemarkNameKml( QgsVectorLayer *vlayer, QgsAttributeM
     QString name = attrMap.value( index ).toString();
     if ( !name.isEmpty() )
     {
-      out << "<name>" << name << "</name>";
+      out << "<name>" << htmlString( name ) << "</name>";
     }
   }
   return result;
@@ -191,7 +191,7 @@ QString QgsKmlConverter::placemarkDescriptionKml( QgsVectorLayer *vlayer, QgsAtt
     QString description = attrMap.value( index ).toString();
     if ( !description.isEmpty() )
     {
-      out << "<description>" << description << "</description>";
+      out << "<description>" << htmlString( description ) << "</description>";
     }
   }
   return result;
@@ -494,4 +494,9 @@ QFile *QgsKmlConverter::getTempFile()
     return tempFile;
   }
   return NULL;
+}
+
+QString QgsKmlConverter::htmlString( QString in )
+{
+  return in.replace( QRegExp( "&(?!amp;)" ), "&amp;" );
 }
