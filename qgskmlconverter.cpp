@@ -104,7 +104,8 @@ QString QgsKmlConverter::exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatu
       {
         const QgsUniqueValueRenderer *urenderer = dynamic_cast<const QgsUniqueValueRenderer *>( renderer );
         QgsSymbol *symbol = symbolForFeature( &feature, urenderer );
-        out << "<name>" + symbol->lowerValue() + "</name>" << endl;
+        if ( symbol )
+          out << "<name>" + symbol->lowerValue() + "</name>" << endl;
       }
 
       out << placemarkDescriptionKml( vlayer, feature.attributeMap() ) << endl;
