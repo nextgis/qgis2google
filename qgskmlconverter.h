@@ -2,6 +2,7 @@
 #define QGSKMLCONVERTER_H
 
 #include <QColor>
+#include <QTextStream>
 
 #include <qgsfeature.h>
 
@@ -41,10 +42,10 @@ private:
   QString wkt2kmlLine( QString wktLine);
   QString wkt2kmlPolygon( QString wktPolygon);
 
-  QRgb rgba2abgr( QColor color );
-  QString vlayerStyleId( const QgsFeature *feature, QString styleId, const QgsRenderer *renderer );
+  QString vlayerStyleId( QgsFeature *feature, QString styleId, const QgsRenderer *renderer );
+  QgsSymbol *symbolForFeature( QgsFeature *feature, const QgsUniqueValueRenderer *urenderer );
 
-  QgsSymbol *symbolForFeature( const QgsFeature *f, const QgsUniqueValueRenderer *r );
+  QRgb rgba2abgr( QColor color );
 
   QList<QFile *> mTempKmlFiles;
 };

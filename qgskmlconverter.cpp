@@ -96,13 +96,27 @@ QString QgsKmlConverter::exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatu
       QString wktFormat = geometry->exportToWkt();
 
       out << "<Placemark>" << endl;
-      out << placemarkNameKml( vlayer, feature.attributeMap() ) << endl;
+      if ( bSingleSymbol )
+      {
+        out << placemarkNameKml( vlayer, feature.attributeMap() ) << endl;
+      }
+      else // Unique Value
+      {
+        const QgsUniqueValueRenderer *urenderer = dynamic_cast<const QgsUniqueValueRenderer *>( renderer );
+        QgsSymbol *symbol = symbolForFeature( &feature, urenderer );
+        out << "<name>" + symbol->lowerValue() + "</name>" << endl;
+      }
+
       out << placemarkDescriptionKml( vlayer, feature.attributeMap() ) << endl;
 
       if ( bSingleSymbol )
+      {
         out << "<styleUrl>" << styleId << "</styleUrl>" << endl;
-      else
+      }
+      else // Unique Value
+      {
         out << "<styleUrl>" << vlayerStyleId( &feature, styleId, renderer ) << "</styleUrl>" << endl;
+      }
 
       out << convertWktToKml( wktFormat ) << endl;
       out << "</Placemark>" << endl;
@@ -131,6 +145,24 @@ int QgsKmlConverter::attributeNameIndex( QgsVectorLayer *vlayer )
   return -1;
 }
 
+QString QgsKmlConverter::placemarkNameKml( QgsVectorLayer *vlayer, QgsAttributeMap attrMap )
+{
+  QString result;
+  QTextStream out( &result );
+
+  int index = attributeNameIndex( vlayer );
+
+  if ( index > -1 )
+  {
+    QString name = attrMap.value( index ).toString();
+    if ( !name.isEmpty() )
+    {
+      out << "<name>" << name << "</name>";
+    }
+  }
+  return result;
+}
+
 int QgsKmlConverter::attributeDescrIndex( QgsVectorLayer *vlayer )
 {
   QgsAttributeList attributeList = vlayer->pendingAllAttributesList();
@@ -146,27 +178,11 @@ int QgsKmlConverter::attributeDescrIndex( QgsVectorLayer *vlayer )
   return -1;
 }
 
-QString QgsKmlConverter::placemarkNameKml( QgsVectorLayer *vlayer, QgsAttributeMap attrMap )
-{
-  QString result;
-  QTextStream out( &result );
-  int index = attributeNameIndex( vlayer );
-
-  if ( index > -1 )
-  {
-    QString name = attrMap.value( index ).toString();
-    if ( !name.isEmpty() )
-    {
-      out << "<name>" << name << "</name>";
-    }
-  }
-  return result;
-}
-
 QString QgsKmlConverter::placemarkDescriptionKml( QgsVectorLayer *vlayer, QgsAttributeMap attrMap )
 {
   QString result;
   QTextStream out( &result );
+
   int index = attributeDescrIndex( vlayer );
 
   if ( index > -1 )
@@ -190,13 +206,13 @@ QRgb QgsKmlConverter::rgba2abgr( QColor color )
   return color.rgba();
 }
 
-QgsSymbol *QgsKmlConverter::symbolForFeature( const QgsFeature *f, const QgsUniqueValueRenderer *r )
+QgsSymbol *QgsKmlConverter::symbolForFeature( QgsFeature *feature, const QgsUniqueValueRenderer *urenderer )
 {
   //first find out the value
-  const QgsAttributeMap& attrs = f->attributeMap();
-  QString value = attrs[ r->classificationField() ].toString();
+  const QgsAttributeMap& attrs = feature->attributeMap();
+  QString value = attrs[ urenderer->classificationField() ].toString();
 
-  QList<QgsSymbol *> symbols = r->symbols();
+  QList<QgsSymbol *> symbols = urenderer->symbols();
   foreach( QgsSymbol *symbol, symbols )
   {
     if ( symbol->lowerValue() == value )
@@ -205,7 +221,7 @@ QgsSymbol *QgsKmlConverter::symbolForFeature( const QgsFeature *f, const QgsUniq
   return NULL;
 }
 
-QString QgsKmlConverter::vlayerStyleId( const QgsFeature *feature, QString styleId, const QgsRenderer *renderer )
+QString QgsKmlConverter::vlayerStyleId( QgsFeature *feature, QString styleId, const QgsRenderer *renderer )
 {
   const QgsUniqueValueRenderer *uniqValRenderer = dynamic_cast<const QgsUniqueValueRenderer *>( renderer );
   QgsSymbol *symbol = symbolForFeature( feature, uniqValRenderer );
@@ -221,9 +237,8 @@ QString QgsKmlConverter::styleKmlSingleSymbol( QString styleId )
   double tmpDouble;
   QSettings settings;
   QString result, tmpColorMode;
-  QColor tmpColor;
-
   QTextStream out( &result );
+  QColor tmpColor;
 
   out << "<Style id=\"" << styleId << "\">" << endl;
 
@@ -266,9 +281,8 @@ QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList
   double tmpScale = 1.0;
   QSettings settings;
   QString result, tmpColorMode( "normal" );
-  QColor tmpColor;
-
   QTextStream out( &result );
+  QColor tmpColor;
 
   foreach( QgsSymbol *symbol, symbols )
   {
@@ -358,9 +372,9 @@ QString QgsKmlConverter::wkt2kmlLine( QString wktLine)
 QString QgsKmlConverter::wkt2kmlPolygon( QString wktPolygon)
 {
   QString result;
+  QTextStream out( &result );
   QSettings settings;
 
-  QTextStream out( &result );
   int altitudeVal = settings.value( "/qgis2google/poly/altitudevalue" ).toInt();
   QString altitudeMode = settings.value( "/qgis2google/poly/altitudemode" ).toString();
   QStringList polygonList = wktPolygon.split( "),(" );
@@ -431,7 +445,7 @@ QString QgsKmlConverter::convertWktToKml( QString wkt )
   {
     QString mpolygon = wkt.mid( 15, wkt.length() - 18);
     QStringList mpolygonList = mpolygon.split( ")),((" );
-    QTextStream out( &result );
+//    out.setString( &result );
 
     out << "<MultiGeometry>" << endl;
     foreach ( QString polygon, mpolygonList )
