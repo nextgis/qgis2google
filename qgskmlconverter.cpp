@@ -67,7 +67,7 @@ QString QgsKmlConverter::exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatu
       << "xmlns:gx=\"http://www.google.com/kml/ext/2.2\">" << endl;
 
   out << "<Document>" << endl
-      << "<name>" << vlayer->name() << "</name>" << endl;
+      << "<name>" << htmlString( vlayer->name() ) << "</name>" << endl;
 
   const QgsRenderer *renderer = vlayer->renderer();
   QList< QgsSymbol *> symbols = renderer->symbols();
@@ -77,11 +77,11 @@ QString QgsKmlConverter::exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatu
 
   if ( bSingleSymbol )
   {
-    out << styleKmlSingleSymbol( styleId ) << endl;
+    out << htmlString( styleKmlSingleSymbol( styleId ) ) << endl;
   }
   else if ( bUniqueValue )
   {
-    out << styleKmlUniqueValue( vlayer->getTransparency(), styleId, symbols ) << endl;
+    out << htmlString( styleKmlUniqueValue( vlayer->getTransparency(), styleId, symbols ) ) << endl;
   }
   else
   {

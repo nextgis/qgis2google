@@ -50,9 +50,9 @@
 
 
 static const char * const sIdent = "$Id: plugin.cpp 9327 2008-09-14 11:18:44Z jef $";
-static const QString sName = QObject::tr( "qgis2google" );
-static const QString sDescription = QObject::tr( "Quickly send selected objects or layer to Google Earth." );
-static const QString sPluginVersion = QObject::tr( "Version 1.5" );
+static const QString sDescription = QObject::tr( "Quickly send selected objects or layer to Google Earth" );
+static const QString sPluginVersion = QObject::tr( "Version 1.9" );
+static const QString sName = QObject::tr( "qgis2google" ) + " (" + sPluginVersion + ")";
 static const QgisPlugin::PLUGINTYPE sPluginType = QgisPlugin::UI;
 
 //////////////////////////////////////////////////////////////////////
@@ -68,7 +68,7 @@ static const QgisPlugin::PLUGINTYPE sPluginType = QgisPlugin::UI;
  */
 qgis2google::qgis2google( QgisInterface  *theQgisInterface ):
     QgisPlugin( sName, sDescription, sPluginVersion, sPluginType ),
-    mQGisIface( theQgisInterface )
+    mQGisIface( theQgisInterface ), mPluginName( "qgis2google" )
 {
 }
 
@@ -82,27 +82,28 @@ qgis2google::~qgis2google()
  */
 void qgis2google::initGui()
 {
-  mToolsToolBar = mQGisIface->addToolBar( sName + " toolbar" );
+  mToolsToolBar = mQGisIface->addToolBar( mPluginName + " toolbar" );
 
   mSendToEarthTool = new QgsGoogleEarthTool( mQGisIface->mapCanvas() );
 
-  mSendToEarthAction = mToolsToolBar->addAction( QIcon( ":/qgis2google/feature_to_google_earth.png" ), tr( "Send feature to Google Earth" ) );
-  mSendToEarthAction->setCheckable( true );
-  connect( mSendToEarthAction, SIGNAL( triggered() ), SLOT( setToolToEarth() ) );
+  mFeatureToEarthAction = mToolsToolBar->addAction( QIcon( ":/qgis2google/feature_to_google_earth.png" ), tr( "Send feature to Google Earth" ) );
+  mFeatureToEarthAction->setCheckable( true );
+  connect( mFeatureToEarthAction, SIGNAL( triggered() ), SLOT( setToolToEarth() ) );
+  mQGisIface->addPluginToMenu( mPluginName, mFeatureToEarthAction );
 
   mLayerToEarthAction = new QAction( QIcon( ":/qgis2google/layer_to_google_earth.png"), tr( "Send layer to Google Earth" ), this );
   connect( mLayerToEarthAction, SIGNAL( triggered() ), mSendToEarthTool, SLOT( exportLayerToKml() ) );
-  mQGisIface->addPluginToMenu( sName, mLayerToEarthAction );
+  mQGisIface->addPluginToMenu( mPluginName, mLayerToEarthAction );
   mToolsToolBar->addAction( mLayerToEarthAction );
 
   mSettingsAction = new QAction( QIcon( ":/qgis2google/settings.png" ), tr( "Settings" ), this );
   connect( mSettingsAction, SIGNAL( triggered() ), SLOT( settings() ) );
-  mQGisIface->addPluginToMenu( sName, mSettingsAction );
+  mQGisIface->addPluginToMenu( mPluginName, mSettingsAction );
   mToolsToolBar->addAction( mSettingsAction );
 
   mInfoAction = new QAction( tr( "About" ), this );
   connect( mInfoAction, SIGNAL( triggered() ), SLOT( about() ) );
-  mQGisIface->addPluginToMenu( sName, mInfoAction );
+  mQGisIface->addPluginToMenu( mPluginName, mInfoAction );
 
   setDefaultSettings( mQGisIface->activeLayer() );
 
@@ -118,15 +119,15 @@ void qgis2google::help()
 // Unload the plugin by cleaning up the GUI
 void qgis2google::unload()
 {
-  disconnect( mSendToEarthAction, SIGNAL( triggered() ), this, SLOT( setToolToEarth() ) );
+  disconnect( mFeatureToEarthAction, SIGNAL( triggered() ), this, SLOT( setToolToEarth() ) );
   disconnect( mLayerToEarthAction, SIGNAL( triggered() ), mSendToEarthTool, SLOT( exportLayerToKml() ) );
   disconnect( mSettingsAction, SIGNAL( triggered() ), this, SLOT( settings() ) );
   disconnect( mQGisIface, SIGNAL(currentLayerChanged(QgsMapLayer*)), this, SLOT(setDefaultSettings(QgsMapLayer*)) );
   disconnect( mInfoAction, SIGNAL( triggered() ), this, SLOT( about() ) );
 
-  mQGisIface->removePluginMenu( sName, mLayerToEarthAction );
-  mQGisIface->removePluginMenu( sName, mSettingsAction );
-  mQGisIface->removePluginMenu( sName, mInfoAction );
+  mQGisIface->removePluginMenu( mPluginName, mLayerToEarthAction );
+  mQGisIface->removePluginMenu( mPluginName, mSettingsAction );
+  mQGisIface->removePluginMenu( mPluginName, mInfoAction );
   mToolsToolBar->removeAction( mSettingsAction );
   mToolsToolBar->removeAction( mLayerToEarthAction );
 

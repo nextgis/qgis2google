@@ -89,16 +89,17 @@ private:
   //! Pointer to the QGIS interface object
   QgisInterface *mQGisIface;
 
-  QgsGoogleEarthTool *mSendToEarthTool; //m_action_to_earth;
+  QgsGoogleEarthTool *mSendToEarthTool;
 
-  QAction *mSendToMapAction; // m_action_to_map;
-  QAction *mSendToEarthAction; // m_action_to_aerth;
+  QAction *mFeatureToEarthAction;
   QAction *mLayerToEarthAction;
   QAction *mSettingsAction;
-  QAction *mInfoAction; //m_info_action;
+  QAction *mInfoAction;
 
-  QToolBar *mToolsToolBar; //m_tools_tool_bar;
-  QgsMapTool *mPrevMapTool; //*m_last_tool;
+  QToolBar *mToolsToolBar;
+  QgsMapTool *mPrevMapTool;
+
+  QString mPluginName;
 };
 
 #endif //qgis2google_H
