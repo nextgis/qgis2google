@@ -6,22 +6,52 @@
 #include "qgskmlsettingsdialog.h"
 #include "ui_qgskmlsettingsdialogbase.h"
 
-QgsKmlSettingsDialog::QgsKmlSettingsDialog(QWidget *parent) :
-    QDialog(parent),
-    m_ui(new Ui::QgsKmlSettingsDialog)
+QgsKmlSettingsDialog::QgsKmlSettingsDialog(QWidget *parent, QGis::GeometryType typeOfFeature ) :
+    QDialog(parent), m_ui(new Ui::QgsKmlSettingsDialog), mTypeOfFeature( typeOfFeature )
 {
   m_ui->setupUi(this);
 
+  initComboBoxes();
+
+  QgsApplication::setOrganizationName( "gis-lab" );
+  QgsApplication::setOrganizationDomain( "gis-lab.info" );
+  QgsApplication::setApplicationName( "qgis2google" );
+
+  setDialogForFeature( typeOfFeature );
+  readSettings( typeOfFeature );
+}
+
+QgsKmlSettingsDialog::~QgsKmlSettingsDialog()
+{
+  delete m_ui;
+}
+
+void QgsKmlSettingsDialog::changeEvent(QEvent *e)
+{
+  QDialog::changeEvent(e);
+  switch (e->type()) {
+  case QEvent::LanguageChange:
+    m_ui->retranslateUi(this);
+    break;
+  default:
+    break;
+  }
+}
+
+void QgsKmlSettingsDialog::initComboBoxes()
+{
   QStringList stringList;
 
   stringList << tr( "Normal" ) << tr( "Random" );
 
   m_ui->cbLabelColorMode->addItems( stringList );
-  setColorModeItemsData( m_ui->cbLabelColorMode);
+  setColorModeItemsData( m_ui->cbLabelColorMode );
   m_ui->cbLineColorMode->addItems( stringList );
-  setColorModeItemsData( m_ui->cbLineColorMode);
+  setColorModeItemsData( m_ui->cbLineColorMode );
   m_ui->cbPolyColorMode->addItems( stringList );
-  setColorModeItemsData( m_ui->cbPolyColorMode);
+  setColorModeItemsData( m_ui->cbPolyColorMode );
+  m_ui->cbIconColorMode->addItems( stringList );
+  setColorModeItemsData( m_ui->cbIconColorMode );
 
   stringList.clear();
   stringList << tr( "Clamp to ground" ) << tr( "Clamp to sea floor" )
@@ -47,16 +77,13 @@ QgsKmlSettingsDialog::QgsKmlSettingsDialog(QWidget *parent) :
   m_ui->cbLineTessellate->addItems( stringList );
   m_ui->cbPolyTessellate->addItems( stringList );
 
-  QgsApplication::setOrganizationName( "gis-lab" );
-  QgsApplication::setOrganizationDomain( "gis-lab.info" );
-  QgsApplication::setApplicationName( "qgis2google" );
-
-  readSettings();
-}
-
-QgsKmlSettingsDialog::~QgsKmlSettingsDialog()
-{
-  delete m_ui;
+//  stringList.clear();
+//  stringList << tr( "Pixels" ) << tr( "Fractions" ) << tr( "Inset pixels" );
+//
+//  m_ui->cbXunits->addItems( stringList );
+//  setUnitsData( m_ui->cbXunits );
+//  m_ui->cbYunits->addItems( stringList );
+//  setUnitsData( m_ui->cbYunits );
 }
 
 void QgsKmlSettingsDialog::setAltitudeItemsData( QComboBox *comboBox )
@@ -74,17 +101,12 @@ void QgsKmlSettingsDialog::setColorModeItemsData( QComboBox *comboBox )
   comboBox->setItemData( 1, "random" );
 }
 
-void QgsKmlSettingsDialog::changeEvent(QEvent *e)
-{
-  QDialog::changeEvent(e);
-  switch (e->type()) {
-  case QEvent::LanguageChange:
-    m_ui->retranslateUi(this);
-    break;
-  default:
-    break;
-  }
-}
+//void QgsKmlSettingsDialog::setUnitsData( QComboBox *comboBox )
+//{
+//  comboBox->setItemData( 0, "pixels" );
+//  comboBox->setItemData( 1, "fraction" );
+//  comboBox->setItemData( 2, "insetPixels" );
+//}
 
 QColor QgsKmlSettingsDialog::getButtonColor( QPushButton *button )
 {
@@ -113,12 +135,13 @@ QString QgsKmlSettingsDialog::boolToQString( int boolVal )
   return "";
 }
 
-void QgsKmlSettingsDialog::readSettings()
+void QgsKmlSettingsDialog::readSettings( QGis::GeometryType typeOfFeature )
 {
   QSettings settings;
   QString tmpStr;
   QColor tmpColor;
   int tmpInt;
+  double tmpDbl;
   
   tmpInt = settings.value( "/qgis2google/singlevalue", 1 ).toInt();
   if ( tmpInt )
@@ -129,14 +152,7 @@ void QgsKmlSettingsDialog::readSettings()
   tmpInt = settings.value( "/qgis2google/currenttab", 0 ).toInt();
   m_ui->tabWidget->setCurrentIndex( tmpInt );
   move( settings.value( "/qgis2google/pos", QPoint( 0, 0 ) ).toPoint() );
-  resize( settings.value( "/qgis2google/size", QSize( 370, 520 ) ).toSize() );
-
-  tmpInt = settings.value( "/qgis2google/point/extrude", 0 ).toInt();
-  m_ui->cbPointExtrude->setCurrentIndex( m_ui->cbPointExtrude->findText( boolToQString( tmpInt ) ) );
-  tmpStr = settings.value( "/qgis2google/point/altitudemode", "clampToGround" ).toString();
-  m_ui->cbPointAltitudeMode->setCurrentIndex( m_ui->cbPointAltitudeMode->findData( tmpStr ) );
-  tmpInt = settings.value( "/qgis2google/point/altitudevalue", -1 ).toInt();
-  m_ui->sbxPointAltitude->setValue( tmpInt );
+  resize( settings.value( "/qgis2google/size", QSize( 370, 440 ) ).toSize() );
 
   tmpInt = settings.value( "/qgis2google/label/opacity", 100 ).toInt();
   m_ui->sbxLabelOpacity->setValue( tmpInt );
@@ -146,54 +162,95 @@ void QgsKmlSettingsDialog::readSettings()
   setButtonColor( m_ui->pbLabelColor, tmpColor );
   tmpStr = settings.value( "/qgis2google/label/colormode", "normal" ).toString();
   m_ui->cbLabelColorMode->setCurrentIndex( m_ui->cbLabelColorMode->findData( tmpStr ) );
-  tmpInt = settings.value( "/qgis2google/label/scale", 1.0 ).toInt();
-  m_ui->dsbLabelScale->setValue( tmpInt );
+  tmpDbl = settings.value( "/qgis2google/label/scale", 1.0 ).toDouble();
+  m_ui->dsbLabelScale->setValue( tmpDbl );
 
-  tmpInt = settings.value( "/qgis2google/line/opacity", 100 ).toInt();
-  m_ui->sbxLineOpacity->setValue( tmpInt );
-  tmpColor = settings.value( "/qgis2google/line/color", QColor( 0, 255, 255 ) ).value<QColor>();
-  tmpInt = tmpInt / 100 * 255;
-  tmpColor.setAlpha( tmpInt );
-  setButtonColor( m_ui->pbLineColor, tmpColor );
-  tmpStr = settings.value( "/qgis2google/line/colormode", "normal" ).toString();
-  m_ui->cbLineColorMode->setCurrentIndex( m_ui->cbLineColorMode->findData( tmpStr ) );
-  tmpInt = settings.value( "/qgis2google/line/width", 1.0 ).toInt();
-  m_ui->dsbLineWidth->setValue( tmpInt );
-  tmpInt = settings.value( "/qgis2google/line/extrude", 0 ).toInt();
-  m_ui->cbLineExtrude->setCurrentIndex( m_ui->cbLineExtrude->findText( boolToQString( tmpInt ) ) );
-  tmpInt = settings.value( "/qgis2google/line/tessellate", 0 ).toBool();
-  m_ui->cbLineTessellate->setCurrentIndex( m_ui->cbLineTessellate->findText( boolToQString( tmpInt ) ) );
-  tmpStr = settings.value( "/qgis2google/line/altitudemode", "clampToGround" ).toString();
-  m_ui->cbLineAltitudeMode->setCurrentIndex( m_ui->cbLineAltitudeMode->findData( tmpStr ) );
-  tmpInt = settings.value( "/qgis2google/line/altitudevalue", -1 ).toInt();
-  m_ui->sbxLineAltitude->setValue( tmpInt );
+  switch ( typeOfFeature )
+  {
+  case QGis::Point:
+    {
+      //  tmpStr = settings.value( "/qgis2google/icon/location" ).toString(); // TODO
+      tmpInt = settings.value( "/qgis2google/icon/opacity", 100 ).toInt();
+      m_ui->sbxIconOpacity->setValue( tmpInt );
+      tmpColor = settings.value( "/qgis2google/icon/color", QColor( 255, 255, 255 ) ).value<QColor>();
+      tmpInt = tmpInt / 100 * 255;
+      tmpColor.setAlpha( tmpInt );
+      setButtonColor( m_ui->pbIconColor, tmpColor );
+      tmpStr = settings.value( "/qgis2google/icon/colormode", "normal" ).toString();
+      m_ui->cbIconColorMode->setCurrentIndex( m_ui->cbIconColorMode->findData( tmpStr ) );
+      tmpDbl = settings.value( "/qgis2google/icon/scale", 1.0 ).toDouble();
+      m_ui->dsbIconScale->setValue( tmpDbl );
+      //  tmpInt = settings.value( "/qgis2google/icon/heading", 0 ).toInt(); // TODO
+      //  tmpDbl = settings.value( "/qgis2google/icon/xunits", "fraction" ).toString();
+      //  m_ui->cbXunits->setCurrentIndex( m_ui->cbXunits->findData( tmpDbl ) );
+      //  tmpDbl = settings.value( "/qgis2google/icon/yunits", "fraction" ).toString();
+      //  m_ui->cbYunits->setCurrentIndex( m_ui->cbYunits->findData( tmpDbl ) );
+      //  tmpDbl = settings.value( "qgis2google/icon/x", 0.5 ).toDouble(); // TODO
+      //  tmpDbl = settings.value( "qgis2google/icon/y", 0.5 ).toDouble(); // TODO
 
-  tmpInt = settings.value( "/qgis2google/poly/opacity", 100 ).toInt();
-  m_ui->sbxPolyOpacity->setValue( tmpInt );
-  tmpColor = settings.value( "/qgis2google/poly/color", QColor( 0, 0, 255 ) ).value<QColor>();
-  tmpInt = tmpInt / 100 * 255;
-  tmpColor.setAlpha( tmpInt );
-  setButtonColor( m_ui->pbPolyColor, tmpColor );
-  tmpStr = settings.value( "/qgis2google/poly/colormode", "normal" ).toString();
-  m_ui->cbPolyColorMode->setCurrentIndex( m_ui->cbPolyColorMode->findData( tmpStr ) );
-  tmpInt = settings.value( "/qgis2google/poly/extrude", 0 ).toInt();
-  m_ui->cbPolyExtrude->setCurrentIndex( m_ui->cbPolyExtrude->findText( boolToQString( tmpInt ) ) );
-  tmpInt = settings.value( "/qgis2google/poly/tessellate", 0 ).toBool();
-  m_ui->cbPolyTessellate->setCurrentIndex( m_ui->cbPolyTessellate->findText( boolToQString( tmpInt ) ) );
-  tmpStr = settings.value( "/qgis2google/poly/altitudemode", "clampToGround" ).toString();
-  m_ui->cbPolyAltitudeMode->setCurrentIndex( m_ui->cbPolyAltitudeMode->findData( tmpStr ) );
-  tmpInt = settings.value( "/qgis2google/poly/altitudevalue", -1 ).toInt();
-  m_ui->sbxPolyAltitude->setValue( tmpInt );
-  tmpInt = settings.value( "/qgis2google/poly/fill", 0 ).toBool();
-  m_ui->cbPolyFill->setCurrentIndex( m_ui->cbPolyFill->findText( boolToQString( tmpInt ) ) );
-  tmpInt = settings.value( "/qgis2google/poly/outline", 0 ).toBool();
-  m_ui->cbPolyOutline->setCurrentIndex( m_ui->cbPolyOutline->findText( boolToQString( tmpInt ) ) );
+      tmpInt = settings.value( "/qgis2google/point/extrude", 0 ).toInt();
+      m_ui->cbPointExtrude->setCurrentIndex( m_ui->cbPointExtrude->findText( boolToQString( tmpInt ) ) );
+      tmpStr = settings.value( "/qgis2google/point/altitudemode", "clampToGround" ).toString();
+      m_ui->cbPointAltitudeMode->setCurrentIndex( m_ui->cbPointAltitudeMode->findData( tmpStr ) );
+      tmpInt = settings.value( "/qgis2google/point/altitudevalue", -1 ).toInt();
+      m_ui->sbxPointAltitude->setValue( tmpInt );
+      break;
+    }
+  case QGis::Line:
+    {
+      tmpInt = settings.value( "/qgis2google/line/opacity", 100 ).toInt();
+      m_ui->sbxLineOpacity->setValue( tmpInt );
+      tmpColor = settings.value( "/qgis2google/line/color", QColor( 0, 255, 255 ) ).value<QColor>();
+      tmpInt = tmpInt / 100 * 255;
+      tmpColor.setAlpha( tmpInt );
+      setButtonColor( m_ui->pbLineColor, tmpColor );
+      tmpStr = settings.value( "/qgis2google/line/colormode", "normal" ).toString();
+      m_ui->cbLineColorMode->setCurrentIndex( m_ui->cbLineColorMode->findData( tmpStr ) );
+      tmpInt = settings.value( "/qgis2google/line/width", 1.0 ).toInt();
+      m_ui->dsbLineWidth->setValue( tmpInt );
+      tmpInt = settings.value( "/qgis2google/line/extrude", 0 ).toInt();
+      m_ui->cbLineExtrude->setCurrentIndex( m_ui->cbLineExtrude->findText( boolToQString( tmpInt ) ) );
+      tmpInt = settings.value( "/qgis2google/line/tessellate", 0 ).toBool();
+      m_ui->cbLineTessellate->setCurrentIndex( m_ui->cbLineTessellate->findText( boolToQString( tmpInt ) ) );
+      tmpStr = settings.value( "/qgis2google/line/altitudemode", "clampToGround" ).toString();
+      m_ui->cbLineAltitudeMode->setCurrentIndex( m_ui->cbLineAltitudeMode->findData( tmpStr ) );
+      tmpInt = settings.value( "/qgis2google/line/altitudevalue", -1 ).toInt();
+      m_ui->sbxLineAltitude->setValue( tmpInt );
+      break;
+    }
+  case QGis::Polygon:
+    {
+      tmpInt = settings.value( "/qgis2google/poly/opacity", 100 ).toInt();
+      m_ui->sbxPolyOpacity->setValue( tmpInt );
+      tmpColor = settings.value( "/qgis2google/poly/color", QColor( 0, 0, 255 ) ).value<QColor>();
+      tmpInt = tmpInt / 100 * 255;
+      tmpColor.setAlpha( tmpInt );
+      setButtonColor( m_ui->pbPolyColor, tmpColor );
+      tmpStr = settings.value( "/qgis2google/poly/colormode", "normal" ).toString();
+      m_ui->cbPolyColorMode->setCurrentIndex( m_ui->cbPolyColorMode->findData( tmpStr ) );
+      tmpInt = settings.value( "/qgis2google/poly/extrude", 0 ).toInt();
+      m_ui->cbPolyExtrude->setCurrentIndex( m_ui->cbPolyExtrude->findText( boolToQString( tmpInt ) ) );
+      tmpInt = settings.value( "/qgis2google/poly/tessellate", 0 ).toBool();
+      m_ui->cbPolyTessellate->setCurrentIndex( m_ui->cbPolyTessellate->findText( boolToQString( tmpInt ) ) );
+      tmpStr = settings.value( "/qgis2google/poly/altitudemode", "clampToGround" ).toString();
+      m_ui->cbPolyAltitudeMode->setCurrentIndex( m_ui->cbPolyAltitudeMode->findData( tmpStr ) );
+      tmpInt = settings.value( "/qgis2google/poly/altitudevalue", -1 ).toInt();
+      m_ui->sbxPolyAltitude->setValue( tmpInt );
+      tmpInt = settings.value( "/qgis2google/poly/fill", 0 ).toBool();
+      m_ui->cbPolyFill->setCurrentIndex( m_ui->cbPolyFill->findText( boolToQString( tmpInt ) ) );
+      tmpInt = settings.value( "/qgis2google/poly/outline", 0 ).toBool();
+      m_ui->cbPolyOutline->setCurrentIndex( m_ui->cbPolyOutline->findText( boolToQString( tmpInt ) ) );
+      break;
+    }
+  case QGis::UnknownGeometry:
+    break;
+  }
 
   tmpInt = settings.value( "/qgis2google/settingsforalllayers", 0 ).toBool();
   m_ui->chbSettingsForAllLayers->setChecked( tmpInt );
 }
 
-void QgsKmlSettingsDialog::writeSettings()
+void QgsKmlSettingsDialog::writeSettings( QGis::GeometryType typeOfFeature )
 {
   QSettings settings;
 
@@ -201,45 +258,105 @@ void QgsKmlSettingsDialog::writeSettings()
   settings.setValue( "/qgis2google/size", size() );
   settings.setValue( "/qgis2google/pos", pos() );
 
-  settings.setValue( "/qgis2google/point/extrude", qstringToBool( m_ui->cbPointExtrude->currentText() ) );
-  settings.setValue( "/qgis2google/point/altitudemode", m_ui->cbPointAltitudeMode->itemData( m_ui->cbPointAltitudeMode->currentIndex() ) );
-  settings.setValue( "/qgis2google/point/altitudevalue", m_ui->sbxPointAltitude->value() );
-
   settings.setValue( "/qgis2google/label/color", getButtonColor( m_ui->pbLabelColor ) );
   settings.setValue( "/qgis2google/label/opacity", m_ui->sbxLabelOpacity->value() );
   settings.setValue( "/qgis2google/label/colormode", m_ui->cbLabelColorMode->itemData( m_ui->cbLabelColorMode->currentIndex() ) );
   settings.setValue( "/qgis2google/label/scale", m_ui->dsbLabelScale->value() );
 
-  settings.setValue( "/qgis2google/line/color", getButtonColor( m_ui->pbLineColor ) );
-  settings.setValue( "/qgis2google/line/opacity", m_ui->sbxLineOpacity->value() );
-  settings.setValue( "/qgis2google/line/colormode", m_ui->cbLineColorMode->itemData( m_ui->cbLineColorMode->currentIndex() ) );
-  settings.setValue( "/qgis2google/line/width", m_ui->dsbLineWidth->value() );
-  settings.setValue( "/qgis2google/line/extrude", qstringToBool( m_ui->cbLineExtrude->currentText() ) );
-  settings.setValue( "/qgis2google/line/tessellate", qstringToBool( m_ui->cbLineTessellate->currentText() ) );
-  settings.setValue( "/qgis2google/line/altitudemode", m_ui->cbLineAltitudeMode->itemData( m_ui->cbLineAltitudeMode->currentIndex() ) );
-  settings.setValue( "/qgis2google/line/altitudevalue", m_ui->sbxLineAltitude->value() );
+  switch ( mTypeOfFeature )
+  {
+  case QGis::Point:
+    {
+      //  settings.setValue( "/qgis2google/icon/location", m_ui->cbTempFile->itemData( m_ui->cbTempFile->currentIndex() ) );
+      settings.setValue( "/qgis2google/icon/color", getButtonColor( m_ui->pbIconColor ) );
+      settings.setValue( "/qgis2google/icon/opacity", m_ui->sbxIconOpacity->value() );
+      settings.setValue( "/qgis2google/icon/colormode", m_ui->cbIconColorMode->itemData( m_ui->cbIconColorMode->currentIndex() ) );
+      settings.setValue( "/qgis2google/icon/scale", m_ui->dsbIconScale->value() );
+      //  settings.setValue( "/qgis2google/icon/xunits", m_ui->cbXunits->itemData( m_ui->cbXunits->currentIndex() ) );
+      //  settings.setValue( "/qgis2google/icon/yunits", m_ui->cbYunits->itemData( m_ui->cbYunits->currentIndex() ) );
 
-  settings.setValue( "/qgis2google/poly/color", getButtonColor( m_ui->pbPolyColor ) );
-  settings.setValue( "/qgis2google/poly/opacity", m_ui->sbxPolyOpacity->value() );
-  settings.setValue( "/qgis2google/poly/colormode", m_ui->cbPolyColorMode->itemData( m_ui->cbPolyColorMode->currentIndex() ) );
-  settings.setValue( "/qgis2google/poly/extrude", qstringToBool( m_ui->cbPolyExtrude->currentText() ) );
-  settings.setValue( "/qgis2google/poly/tessellate", qstringToBool( m_ui->cbPolyTessellate->currentText() ) );
-  settings.setValue( "/qgis2google/poly/altitudemode", m_ui->cbPolyAltitudeMode->itemData( m_ui->cbPolyAltitudeMode->currentIndex() ) );
-  settings.setValue( "/qgis2google/poly/altitudevalue", m_ui->sbxPolyAltitude->value() );
-  settings.setValue( "/qgis2google/poly/fill", qstringToBool( m_ui->cbPolyFill->currentText() ) );
-  settings.setValue( "/qgis2google/poly/outline", qstringToBool( m_ui->cbPolyOutline->currentText() ) );
+      settings.setValue( "/qgis2google/point/extrude", qstringToBool( m_ui->cbPointExtrude->currentText() ) );
+      settings.setValue( "/qgis2google/point/altitudemode", m_ui->cbPointAltitudeMode->itemData( m_ui->cbPointAltitudeMode->currentIndex() ) );
+      settings.setValue( "/qgis2google/point/altitudevalue", m_ui->sbxPointAltitude->value() );
+      break;
+    }
+  case QGis::Line:
+    {
+      settings.setValue( "/qgis2google/line/color", getButtonColor( m_ui->pbLineColor ) );
+      settings.setValue( "/qgis2google/line/opacity", m_ui->sbxLineOpacity->value() );
+      settings.setValue( "/qgis2google/line/colormode", m_ui->cbLineColorMode->itemData( m_ui->cbLineColorMode->currentIndex() ) );
+      settings.setValue( "/qgis2google/line/width", m_ui->dsbLineWidth->value() );
+      settings.setValue( "/qgis2google/line/extrude", qstringToBool( m_ui->cbLineExtrude->currentText() ) );
+      settings.setValue( "/qgis2google/line/tessellate", qstringToBool( m_ui->cbLineTessellate->currentText() ) );
+      settings.setValue( "/qgis2google/line/altitudemode", m_ui->cbLineAltitudeMode->itemData( m_ui->cbLineAltitudeMode->currentIndex() ) );
+      settings.setValue( "/qgis2google/line/altitudevalue", m_ui->sbxLineAltitude->value() );
+      break;
+    }
+  case QGis::Polygon:
+    {
+      settings.setValue( "/qgis2google/poly/color", getButtonColor( m_ui->pbPolyColor ) );
+      settings.setValue( "/qgis2google/poly/opacity", m_ui->sbxPolyOpacity->value() );
+      settings.setValue( "/qgis2google/poly/colormode", m_ui->cbPolyColorMode->itemData( m_ui->cbPolyColorMode->currentIndex() ) );
+      settings.setValue( "/qgis2google/poly/extrude", qstringToBool( m_ui->cbPolyExtrude->currentText() ) );
+      settings.setValue( "/qgis2google/poly/tessellate", qstringToBool( m_ui->cbPolyTessellate->currentText() ) );
+      settings.setValue( "/qgis2google/poly/altitudemode", m_ui->cbPolyAltitudeMode->itemData( m_ui->cbPolyAltitudeMode->currentIndex() ) );
+      settings.setValue( "/qgis2google/poly/altitudevalue", m_ui->sbxPolyAltitude->value() );
+      settings.setValue( "/qgis2google/poly/fill", qstringToBool( m_ui->cbPolyFill->currentText() ) );
+      settings.setValue( "/qgis2google/poly/outline", qstringToBool( m_ui->cbPolyOutline->currentText() ) );
+    }
+  case QGis::UnknownGeometry:
+    break;
+  }
 
   settings.setValue( "/qgis2google/settingsforalllayers", m_ui->chbSettingsForAllLayers->isChecked() );
 }
 
+void QgsKmlSettingsDialog::setDialogForFeature( QGis::GeometryType typeOfFeature )
+{
+  switch ( typeOfFeature )
+  {
+  case QGis::Point:
+    {
+      m_ui->stackedWidgetColorStyle->setCurrentIndex( 0 );
+      m_ui->stackedWidgetGeometry->setCurrentIndex( 0 );
+      break;
+    }
+  case QGis::Line:
+    {
+      m_ui->stackedWidgetColorStyle->setCurrentIndex( 1 );
+      m_ui->stackedWidgetGeometry->setCurrentIndex( 1 );
+      //        this->setMinimumHeight( minimumHeight() - m_ui->stackedWidgetColorStyle->height() +
+      //                                m_ui->gbLineStyle->height() );
+      break;
+    }
+  case QGis::Polygon:
+    {
+      m_ui->stackedWidgetColorStyle->setCurrentIndex( 2 );
+      m_ui->stackedWidgetGeometry->setCurrentIndex( 2 );
+      //        this->setMinimumHeight( minimumHeight() - m_ui->stackedWidgetColorStyle->height() +
+      //                                m_ui->gbPolyStyle->height() );
+      break;
+    }
+  case QGis::UnknownGeometry:
+    break;
+  }
+
+  //  QSettings settings;
+  //  resize( settings.value( "/qgis2google/size", QSize( 370, 440 ) ).toSize() );
+  //
+  //  if ( height() > minimumHeight() + 50 )
+  //    resize( width(), minimumHeight() + 24 );
+}
+
 void QgsKmlSettingsDialog::on_buttonBox_accepted()
 {
-  writeSettings();
+  writeSettings( mTypeOfFeature );
 }
 
 void QgsKmlSettingsDialog::on_pbLabelColor_clicked()
 {
-  QColor color = QColorDialog::getColor( getButtonColor( m_ui->pbLabelColor ), this, tr( "Select color" ), QColorDialog::ShowAlphaChannel );
+  QColor color = QColorDialog::getColor( getButtonColor( m_ui->pbLabelColor ), this,
+                                         tr( "Select color" ), QColorDialog::ShowAlphaChannel );
   if ( color.isValid() )
   {
     int iOpacityPers;
@@ -252,7 +369,8 @@ void QgsKmlSettingsDialog::on_pbLabelColor_clicked()
 
 void QgsKmlSettingsDialog::on_pbLineColor_clicked()
 {
-  QColor color = QColorDialog::getColor( getButtonColor( m_ui->pbLineColor ), this, tr( "Select color" ), QColorDialog::ShowAlphaChannel );
+  QColor color = QColorDialog::getColor( getButtonColor( m_ui->pbLineColor ), this,
+                                         tr( "Select color" ), QColorDialog::ShowAlphaChannel );
   if ( color.isValid() )
   {
     int iOpacityPers;
@@ -265,7 +383,8 @@ void QgsKmlSettingsDialog::on_pbLineColor_clicked()
 
 void QgsKmlSettingsDialog::on_pbPolyColor_clicked()
 {
-  QColor color = QColorDialog::getColor( getButtonColor( m_ui->pbPolyColor ), this, tr( "Select color" ), QColorDialog::ShowAlphaChannel );
+  QColor color = QColorDialog::getColor( getButtonColor( m_ui->pbPolyColor ), this,
+                                         tr( "Select color" ), QColorDialog::ShowAlphaChannel );
   if ( color.isValid() )
   {
     int iOpacityPers;

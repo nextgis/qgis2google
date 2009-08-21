@@ -14,6 +14,8 @@
 
 #define STYLEIDDELIMIT "."
 
+const QString myPathToIcon = "http://maps.google.com/mapfiles/kml/shapes/donut.png";
+
 QgsKmlConverter::QgsKmlConverter()
 {
   QgsApplication::setOrganizationName( "gis-lab" );
@@ -77,11 +79,12 @@ QString QgsKmlConverter::exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatu
 
   if ( bSingleSymbol )
   {
-    out << htmlString( styleKmlSingleSymbol( styleId ) ) << endl;
+    out << htmlString( styleKmlSingleSymbol( styleId, vlayer->geometryType() ) ) << endl;
   }
   else if ( bUniqueValue )
   {
-    out << htmlString( styleKmlUniqueValue( vlayer->getTransparency(), styleId, symbols ) ) << endl;
+    out << htmlString( styleKmlUniqueValue( vlayer->getTransparency(), styleId, symbols,
+                                            vlayer->geometryType() ) ) << endl;
   }
   else
   {
@@ -233,57 +236,82 @@ QString QgsKmlConverter::vlayerStyleId( QgsFeature *feature, QString styleId, co
     return "";
 }
 
-QString QgsKmlConverter::styleKmlSingleSymbol( QString styleId )
+QString QgsKmlConverter::styleKmlSingleSymbol( QString styleId, QGis::GeometryType typeOfFeature )
 {
   double tmpDouble;
   QSettings settings;
-  QString result, tmpColorMode;
+  QString result, colorMode;
   QTextStream out( &result );
-  QColor tmpColor;
+  QColor color;
 
   out << "<Style id=\"" << styleId << "\">" << endl;
 
-  tmpColor = settings.value( "/qgis2google/label/color" ).value<QColor>();
-  tmpColorMode = settings.value( "/qgis2google/label/colormode" ).toString();
+  color = settings.value( "/qgis2google/label/color" ).value<QColor>();
+  colorMode = settings.value( "/qgis2google/label/colormode" ).toString();
   tmpDouble = settings.value( "/qgis2google/label/scale" ).toDouble();
   out << "<LabelStyle>" << endl
-      << "<color>" << hex << rgba2abgr( tmpColor ) << dec << "</color>" << endl
-      << "<colorMode>" << tmpColorMode << "</colorMode>" << endl
+      << "<color>" << hex << rgba2abgr( color ) << dec << "</color>" << endl
+      << "<colorMode>" << colorMode << "</colorMode>" << endl
       << "<scale>" << tmpDouble << "</scale>" << endl
       << "</LabelStyle>" << endl;
 
-  tmpColor = settings.value( "/qgis2google/line/color" ).value<QColor>();
-  tmpColorMode = settings.value( "/qgis2google/line/colormode" ).toString();
-  tmpDouble = settings.value( "/qgis2google/line/width" ).toDouble();
-  out << "<LineStyle>" << endl
-      << "<color>" << hex << rgba2abgr( tmpColor ) << dec << "</color>" << endl
-      << "<colorMode>" << tmpColorMode << "</colorMode>" << endl
-      << "<width>" << tmpDouble << "</width>" << endl
-      << "</LineStyle>" << endl;
-
-  tmpColor = settings.value( "/qgis2google/poly/color" ).value<QColor>();
-  tmpColorMode = settings.value( "/qgis2google/poly/colormode" ).toString();
-  int fill = settings.value( "/qgis2google/poly/fill" ).toInt();
-  int outline = settings.value( "/qgis2google/poly/outline" ).toInt();
-  out << "<PolyStyle>" << endl
-      << "<color>" << hex << rgba2abgr( tmpColor ) << dec << "</color>" << endl
-      << "<colorMode>" << tmpColorMode << "</colorMode>" << endl
-      << "<fill>" << fill << "</fill>" << endl
-      << "<outline>" << outline << "</outline>" << endl
-      << "</PolyStyle>" << endl;
+  switch ( typeOfFeature )
+  {
+  case QGis::Point:
+    {
+      color = settings.value( "/qgis2google/icon/color" ).value<QColor>();
+      colorMode = settings.value( "/qgis2google/icon/colormode" ).toString();
+      tmpDouble = settings.value( "/qgis2google/icon/scale" ).toDouble();
+      out << "<IconStyle>" << endl
+          << "<color>" << hex << rgba2abgr( color ) << dec << "</color>" << endl
+          << "<colorMode>" << colorMode << "</colorMode>" << endl
+          << "<scale>" << tmpDouble << "</scale>" << endl
+          << "<Icon>" << endl << "<href>" << myPathToIcon << "</href>" << endl << "</Icon>" << endl
+          << "</IconStyle>" << endl;
+      break;
+    }
+  case QGis::Line:
+    {
+      color = settings.value( "/qgis2google/line/color" ).value<QColor>();
+      colorMode = settings.value( "/qgis2google/line/colormode" ).toString();
+      tmpDouble = settings.value( "/qgis2google/line/width" ).toDouble();
+      out << "<LineStyle>" << endl
+          << "<color>" << hex << rgba2abgr( color ) << dec << "</color>" << endl
+          << "<colorMode>" << colorMode << "</colorMode>" << endl
+          << "<width>" << tmpDouble << "</width>" << endl
+          << "</LineStyle>" << endl;
+      break;
+    }
+  case QGis::Polygon:
+    {
+      color = settings.value( "/qgis2google/poly/color" ).value<QColor>();
+      colorMode = settings.value( "/qgis2google/poly/colormode" ).toString();
+      int fill = settings.value( "/qgis2google/poly/fill" ).toInt();
+      int outline = settings.value( "/qgis2google/poly/outline" ).toInt();
+      out << "<PolyStyle>" << endl
+          << "<color>" << hex << rgba2abgr( color ) << dec << "</color>" << endl
+          << "<colorMode>" << colorMode << "</colorMode>" << endl
+          << "<fill>" << fill << "</fill>" << endl
+          << "<outline>" << outline << "</outline>" << endl
+          << "</PolyStyle>" << endl;
+    }
+  case QGis::UnknownGeometry:
+    break;
+  }
 
   out << "</Style>";
 
   return result;
 }
 
-QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList<QgsSymbol *> symbols )
+QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList<QgsSymbol *> symbols,
+                                              QGis::GeometryType typeOfFeature )
 {
-  double tmpScale = 1.0;
+  double scale = 1.0;
   QSettings settings;
-  QString result, tmpColorMode( "normal" );
+  QString result, colorMode( "normal" );
   QTextStream out( &result );
-  QColor tmpColor;
+  QColor color, fillColor;
 
   foreach( QgsSymbol *symbol, symbols )
   {
@@ -294,35 +322,56 @@ QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList
 
     out << endl << "<Style id=\"" << styleId + STYLEIDDELIMIT + symbolName << "\">" << endl;
 
-    tmpColor = symbol->color();
-    tmpColor.setAlpha( transp );
+    color = symbol->color();
+    color.setAlpha( transp );
+    fillColor = symbol->fillColor();
+    fillColor.setAlpha( transp );
+
     out << "<LabelStyle>" << endl
-        << "<color>" << hex << rgba2abgr( tmpColor ) << dec << "</color>" << endl
-        << "<colorMode>" << tmpColorMode << "</colorMode>" << endl
-        << "<scale>" << tmpScale << "</scale>" << endl
+        << "<color>" << hex << rgba2abgr( color ) << dec << "</color>" << endl
+        << "<colorMode>" << colorMode << "</colorMode>" << endl
+        << "<scale>" << scale << "</scale>" << endl
         << "</LabelStyle>" << endl;
 
-    tmpColor = symbol->color();
-    tmpColor.setAlpha( transp );
-    double lineWidth = symbol->lineWidth();
-    out << "<LineStyle>" << endl
-        << "<color>" << hex << rgba2abgr( tmpColor ) << dec << "</color>" << endl
-        << "<colorMode>" << tmpColorMode << "</colorMode>" << endl
-        << "<width>" << lineWidth << "</width>" << endl
-        << "</LineStyle>" << endl;
-
-    tmpColor = symbol->fillColor();
-    tmpColor.setAlpha( transp );
-    int bPolyStyle = symbol->brush().style() != Qt::NoBrush;
-    int fill = bPolyStyle;
-    bPolyStyle = symbol->pen().style() != Qt::NoPen;
-    int outline = bPolyStyle;
-    out << "<PolyStyle>" << endl
-        << "<color>" << hex << rgba2abgr( tmpColor ) << dec << "</color>" << endl
-        << "<colorMode>" << tmpColorMode << "</colorMode>" << endl
-        << "<fill>" << fill << "</fill>" << endl
-        << "<outline>" << outline << "</outline>" << endl
-        << "</PolyStyle>" << endl;
+    switch ( typeOfFeature )
+    {
+    case QGis::Point:
+      {
+        out << "<IconStyle>" << endl
+            << "<color>" << hex << rgba2abgr( fillColor ) << dec << "</color>" << endl
+            << "<colorMode>" << colorMode << "</colorMode>" << endl
+            << "<scale>" << scale << "</scale>" << endl
+            << "<Icon>" << endl << "<href>" << myPathToIcon << "</href>" << endl << "</Icon>" << endl
+            << "</IconStyle>" << endl;
+        break;
+      }
+    case QGis::Line:
+      {
+        double lineWidth = symbol->lineWidth();
+        out << "<LineStyle>" << endl
+            << "<color>" << hex << rgba2abgr( color ) << dec << "</color>" << endl
+            << "<colorMode>" << colorMode << "</colorMode>" << endl
+            << "<width>" << lineWidth << "</width>" << endl
+            << "</LineStyle>" << endl;
+        break;
+      }
+    case QGis::Polygon:
+      {
+        int bPolyStyle = symbol->brush().style() != Qt::NoBrush;
+        int fill = bPolyStyle;
+        bPolyStyle = symbol->pen().style() != Qt::NoPen;
+        int outline = bPolyStyle;
+        out << "<PolyStyle>" << endl
+            << "<color>" << hex << rgba2abgr( fillColor ) << dec << "</color>" << endl
+            << "<colorMode>" << colorMode << "</colorMode>" << endl
+            << "<fill>" << fill << "</fill>" << endl
+            << "<outline>" << outline << "</outline>" << endl
+            << "</PolyStyle>" << endl;
+        break;
+      }
+    case QGis::UnknownGeometry:
+      break;
+    }
 
     out << "</Style>";
   }
@@ -446,7 +495,7 @@ QString QgsKmlConverter::convertWktToKml( QString wkt )
   {
     QString mpolygon = wkt.mid( 15, wkt.length() - 18);
     QStringList mpolygonList = mpolygon.split( ")),((" );
-//    out.setString( &result );
+    //    out.setString( &result );
 
     out << "<MultiGeometry>" << endl;
     foreach ( QString polygon, mpolygonList )

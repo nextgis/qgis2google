@@ -4,6 +4,7 @@
 #include <QColor>
 #include <QTextStream>
 
+#include <qgis.h>
 #include <qgsfeature.h>
 
 class QFile;
@@ -33,8 +34,9 @@ private:
   int attributeNameIndex( QgsVectorLayer *vlayer);
   int attributeDescrIndex( QgsVectorLayer *vlayer);
 
-  QString styleKmlSingleSymbol( QString styleId );
-  QString styleKmlUniqueValue( int transp, QString styleId, QList<QgsSymbol *> symbols );
+  QString styleKmlSingleSymbol( QString styleId, QGis::GeometryType typeOfFeature );
+  QString styleKmlUniqueValue( int transp, QString styleId, QList<QgsSymbol *> symbols,
+                               QGis::GeometryType typeOfFeature);
   QString placemarkNameKml( QgsVectorLayer *vlayer, QgsAttributeMap attrMap );
   QString placemarkDescriptionKml( QgsVectorLayer *vlayer, QgsAttributeMap attrMap );
 

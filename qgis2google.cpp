@@ -51,7 +51,7 @@
 
 static const char * const sIdent = "$Id: plugin.cpp 9327 2008-09-14 11:18:44Z jef $";
 static const QString sDescription = QObject::tr( "Quickly send selected objects or layer to Google Earth" );
-static const QString sPluginVersion = QObject::tr( "Version 1.9" );
+static const QString sPluginVersion = QObject::tr( "Version 2.0" );
 static const QString sName = QObject::tr( "qgis2google" ) + " (" + sPluginVersion + ")";
 static const QgisPlugin::PLUGINTYPE sPluginType = QgisPlugin::UI;
 
@@ -146,8 +146,11 @@ void qgis2google::setToolToEarth()
 
 void qgis2google::settings()
 {
-//  setDefaultSettings( mQGisIface->activeLayer() );
-  QgsKmlSettingsDialog settingsDialog;
+  QgsVectorLayer *vlayer = dynamic_cast< QgsVectorLayer *>( mQGisIface->activeLayer() );
+  if ( !vlayer )
+    return;
+
+  QgsKmlSettingsDialog settingsDialog( 0, vlayer->geometryType() );
   settingsDialog.exec();
 }
 
@@ -173,53 +176,87 @@ void qgis2google::setDefaultSettings( QgsMapLayer *layer )
       settings.setValue( "/qgis2google/singlevalue", 1 );
 
       int iOpacity, iOpacityPers;
-      QColor color;
+      QColor color, fillColor;
 
-      color = symbol->color();
       iOpacity = vlayer->getTransparency();
       iOpacityPers = iOpacity * 100 / 255;
 
+      color = symbol->color();
       color.setAlpha( iOpacity );
+      fillColor = symbol->fillColor();
+      fillColor.setAlpha( iOpacity );
+
       settings.setValue( "/qgis2google/label/color", color );
       settings.setValue( "/qgis2google/label/opacity", iOpacityPers );
       settings.setValue( "/qgis2google/label/colormode", "normal" );
       settings.setValue( "/qgis2google/label/scale", 1.0 );
 
-      color = symbol->color();
-      color.setAlpha( iOpacity );
-      settings.setValue( "/qgis2google/line/color", color );
-      settings.setValue( "/qgis2google/line/opacity", iOpacityPers );
-      settings.setValue( "/qgis2google/line/colormode", "normal" );
-      settings.setValue( "/qgis2google/line/width", symbol->lineWidth() );
-
-      color = symbol->fillColor();
-      color.setAlpha( iOpacity );
-      settings.setValue( "/qgis2google/poly/color", color );
-      settings.setValue( "/qgis2google/poly/opacity", iOpacityPers );
-      settings.setValue( "/qgis2google/poly/colormode", "normal" );
-      int bPolyStyle = symbol->brush().style() != Qt::NoBrush;
-      settings.setValue( "/qgis2google/poly/fill", bPolyStyle );
-      bPolyStyle = symbol->pen().style() != Qt::NoPen;
-      settings.setValue( "/qgis2google/poly/outline", bPolyStyle );
+      switch ( vlayer->geometryType() )
+      {
+      case QGis::Point:
+        {
+          settings.setValue( "/qgis2google/icon/color", fillColor );
+          settings.setValue( "/qgis2google/icon/opacity", iOpacityPers );
+          settings.setValue( "/qgis2google/icon/colormode", "normal" );
+          settings.setValue( "/qgis2google/icon/scale", 1.0 );
+          break;
+        }
+      case QGis::Line:
+        {
+          settings.setValue( "/qgis2google/line/color", color );
+          settings.setValue( "/qgis2google/line/opacity", iOpacityPers );
+          settings.setValue( "/qgis2google/line/colormode", "normal" );
+          settings.setValue( "/qgis2google/line/width", symbol->lineWidth() );
+          break;
+        }
+      case QGis::Polygon:
+        {
+          settings.setValue( "/qgis2google/poly/color", fillColor );
+          settings.setValue( "/qgis2google/poly/opacity", iOpacityPers );
+          settings.setValue( "/qgis2google/poly/colormode", "normal" );
+          int bPolyStyle = symbol->brush().style() != Qt::NoBrush;
+          settings.setValue( "/qgis2google/poly/fill", bPolyStyle );
+          bPolyStyle = symbol->pen().style() != Qt::NoPen;
+          settings.setValue( "/qgis2google/poly/outline", bPolyStyle );
+          break;
+        }
+      case QGis::UnknownGeometry:
+        break;
+      }
     }
     else
     {
       settings.setValue( "/qgis2google/singlevalue", 0 );
     }
 
-    settings.setValue( "/qgis2google/point/extrude", 0 );
-    settings.setValue( "/qgis2google/point/altitudemode", "clampToGround" );
-    settings.setValue( "/qgis2google/point/altitudevalue", -1 );
-
-    settings.setValue( "/qgis2google/line/extrude", 0 );
-    settings.setValue( "/qgis2google/line/tessellate", 0 );
-    settings.setValue( "/qgis2google/line/altitudemode", "clampToGround" );
-    settings.setValue( "/qgis2google/line/altitudevalue", -1 );
-
-    settings.setValue( "/qgis2google/poly/extrude", 0 );
-    settings.setValue( "/qgis2google/poly/tessellate", 0 );
-    settings.setValue( "/qgis2google/poly/altitudemode", "clampToGround" );
-    settings.setValue( "/qgis2google/poly/altitudevalue", -1 );
+    switch ( vlayer->geometryType() )
+    {
+    case QGis::Point:
+      {
+        settings.setValue( "/qgis2google/point/extrude", 0 );
+        settings.setValue( "/qgis2google/point/altitudemode", "clampToGround" );
+        settings.setValue( "/qgis2google/point/altitudevalue", -1 );
+        break;
+      }
+          case QGis::Line:
+      {
+        settings.setValue( "/qgis2google/line/extrude", 0 );
+        settings.setValue( "/qgis2google/line/tessellate", 0 );
+        settings.setValue( "/qgis2google/line/altitudemode", "clampToGround" );
+        settings.setValue( "/qgis2google/line/altitudevalue", -1 );
+        break;
+      }
+    case QGis::Polygon:
+      {
+        settings.setValue( "/qgis2google/poly/extrude", 0 );
+        settings.setValue( "/qgis2google/poly/tessellate", 0 );
+        settings.setValue( "/qgis2google/poly/altitudemode", "clampToGround" );
+        settings.setValue( "/qgis2google/poly/altitudevalue", -1 );
+        break;
+      }
+    case QGis::UnknownGeometry:
+      break;
+    }
   }
 }
 

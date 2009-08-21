@@ -4,6 +4,8 @@
 #include <QtGui/QDialog>
 #include <QSettings>
 
+#include <qgis.h>
+
 class QComboBox;
 class QLabel;
 class QSpinBox;
@@ -15,7 +17,7 @@ namespace Ui {
 class QgsKmlSettingsDialog : public QDialog {
   Q_OBJECT
 public:
-  QgsKmlSettingsDialog(QWidget *parent = 0);
+  QgsKmlSettingsDialog(QWidget *parent = 0, QGis::GeometryType typeOfFeature = QGis::Point );
   ~QgsKmlSettingsDialog();
 
 protected:
@@ -44,10 +46,14 @@ private slots:
   void on_sbxPolyOpacity_valueChanged( int value );
 
 private:
-  void readSettings();
-  void writeSettings();
+  void readSettings( QGis::GeometryType typeOfFeature );
+  void writeSettings( QGis::GeometryType typeOfFeature );
+
+  void setDialogForFeature( QGis::GeometryType typeOfFeature );
   void enableAltitudeControl( QLabel *label, QSpinBox *spinBox, bool enable );
   void altitudeControl( QString str, bool enable );
+
+  void initComboBoxes();
 
   int qstringToBool( QString boolStr );
   QString boolToQString ( int boolVal );
@@ -60,10 +66,13 @@ private:
 
   void setAltitudeItemsData( QComboBox *comboBox );
   void setColorModeItemsData( QComboBox *comboBox );
+//  void setUnitsData( QComboBox *comboBox );
 
   void setAltitudeModeToolTip( QComboBox *comboBox );
 
   Ui::QgsKmlSettingsDialog *m_ui;
+
+  QGis::GeometryType mTypeOfFeature;
 };
 
 #endif // QGSKMLSETTINGSDIALOG_H
