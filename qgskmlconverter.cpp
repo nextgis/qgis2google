@@ -58,6 +58,7 @@ QString QgsKmlConverter::exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatu
   if ( !tempFile->exists() )
     return QString();
 
+  // set codec for kml file
   QTextCodec *codec = QTextCodec::codecForName( "UTF-8" );
   QTextStream out( tempFile );
 
@@ -69,7 +70,7 @@ QString QgsKmlConverter::exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatu
       << "xmlns:gx=\"http://www.google.com/kml/ext/2.2\">" << endl;
 
   out << "<Document>" << endl
-      << "<name>" << htmlString( vlayer->name() ) << "</name>" << endl;
+      << "<name>" << removeEscapeChars( vlayer->name() ) << "</name>" << endl;
 
   const QgsRenderer *renderer = vlayer->renderer();
   QList< QgsSymbol *> symbols = renderer->symbols();
@@ -79,49 +80,55 @@ QString QgsKmlConverter::exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatu
 
   if ( bSingleSymbol )
   {
-    out << htmlString( styleKmlSingleSymbol( styleId, vlayer->geometryType() ) ) << endl;
+    // create style kml for one symbol and convert getted line to html (e.g. replace & to &amp;)
+    out << removeEscapeChars( styleKmlSingleSymbol( styleId, vlayer->geometryType() ) ) << endl;
   }
   else if ( bUniqueValue )
   {
-    out << htmlString( styleKmlUniqueValue( vlayer->getTransparency(), styleId, symbols,
+    // create style kml for many symbols and convert getted line to html (e.g. replace & to &amp;)
+    out << removeEscapeChars( styleKmlUniqueValue( vlayer->getTransparency(), styleId, symbols,
                                             vlayer->geometryType() ) ) << endl;
   }
   else
   {
+    // dont process other renderers symbols
     return "";
   }
 
+  // export eatch feature to kml format
   foreach ( QgsFeature feature, flist )
   {
     QgsGeometry *geometry = feature.geometry();
     if ( geometry )
     {
-      QString wktFormat = geometry->exportToWkt();
-
       out << "<Placemark>" << endl;
+      // try to find name of feature from attribute table and set one for kml's placemark as html
       if ( bSingleSymbol )
       {
-        out << placemarkNameKml( vlayer, feature.attributeMap() ) << endl;
+        out << removeEscapeChars( placemarkNameKml( vlayer, feature.attributeMap() ) ) << endl;
       }
       else // Unique Value
       {
         const QgsUniqueValueRenderer *urenderer = dynamic_cast<const QgsUniqueValueRenderer *>( renderer );
         QgsSymbol *symbol = symbolForFeature( &feature, urenderer );
         if ( symbol )
-          out << "<name>" + htmlString( symbol->lowerValue() ) + "</name>" << endl;
+          out << "<name>" + removeEscapeChars( symbol->lowerValue() ) + "</name>" << endl;
       }
 
+      // try to find placemark description in attribute table (it should be in html format)
       out << placemarkDescriptionKml( vlayer, feature.attributeMap() ) << endl;
 
       if ( bSingleSymbol )
       {
-        out << "<styleUrl>" << htmlString( styleId ) << "</styleUrl>" << endl;
+        out << "<styleUrl>" << removeEscapeChars( styleId ) << "</styleUrl>" << endl;
       }
       else // Unique Value
       {
-        out << "<styleUrl>" << htmlString( vlayerStyleId( &feature, styleId, renderer ) ) << "</styleUrl>" << endl;
+        out << "<styleUrl>" << removeEscapeChars( featureStyleId( &feature, styleId, renderer ) ) << "</styleUrl>" << endl;
       }
 
+      // convert wkt to kml and write to kml file
+      QString wktFormat = geometry->exportToWkt();
       out << convertWktToKml( wktFormat ) << endl;
       out << "</Placemark>" << endl;
     }
@@ -134,6 +141,7 @@ QString QgsKmlConverter::exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatu
   return tempFile->fileName();
 }
 
+// try to find feature's name in attribute table
 int QgsKmlConverter::attributeNameIndex( QgsVectorLayer *vlayer )
 {
   QgsAttributeList attributeList = vlayer->pendingAllAttributesList();
@@ -149,6 +157,7 @@ int QgsKmlConverter::attributeNameIndex( QgsVectorLayer *vlayer )
   return -1;
 }
 
+// create kml string with feature's name from attribute table
 QString QgsKmlConverter::placemarkNameKml( QgsVectorLayer *vlayer, QgsAttributeMap attrMap )
 {
   QString result;
@@ -161,12 +170,13 @@ QString QgsKmlConverter::placemarkNameKml( QgsVectorLayer *vlayer, QgsAttributeM
     QString name = attrMap.value( index ).toString();
     if ( !name.isEmpty() )
     {
-      out << "<name>" << htmlString( name ) << "</name>";
+      out << "<name>" << removeEscapeChars( name ) << "</name>";
     }
   }
   return result;
 }
 
+// try to find feature's description in attribute table
 int QgsKmlConverter::attributeDescrIndex( QgsVectorLayer *vlayer )
 {
   QgsAttributeList attributeList = vlayer->pendingAllAttributesList();
@@ -182,6 +192,7 @@ int QgsKmlConverter::attributeDescrIndex( QgsVectorLayer *vlayer )
   return -1;
 }
 
+// create kml string with feature's description from attribute table
 QString QgsKmlConverter::placemarkDescriptionKml( QgsVectorLayer *vlayer, QgsAttributeMap attrMap )
 {
   QString result;
@@ -194,12 +205,13 @@ QString QgsKmlConverter::placemarkDescriptionKml( QgsVectorLayer *vlayer, QgsAtt
     QString description = attrMap.value( index ).toString();
     if ( !description.isEmpty() )
     {
-      out << "<description>" << htmlString( description ) << "</description>";
+      out << "<description>" << removeEscapeChars( description ) << "</description>";
     }
   }
   return result;
 }
 
+// in kml instead argb is abgr color modele
 QRgb QgsKmlConverter::rgba2abgr( QColor color )
 {
   qreal redF = color.redF();
@@ -210,6 +222,7 @@ QRgb QgsKmlConverter::rgba2abgr( QColor color )
   return color.rgba();
 }
 
+// find symbol (that contains color, size, fill settings) wich feature will be draw
 QgsSymbol *QgsKmlConverter::symbolForFeature( QgsFeature *feature, const QgsUniqueValueRenderer *urenderer )
 {
   //first find out the value
@@ -225,7 +238,8 @@ QgsSymbol *QgsKmlConverter::symbolForFeature( QgsFeature *feature, const QgsUniq
   return NULL;
 }
 
-QString QgsKmlConverter::vlayerStyleId( QgsFeature *feature, QString styleId, const QgsRenderer *renderer )
+// create kml style identificator for feature
+QString QgsKmlConverter::featureStyleId( QgsFeature *feature, QString styleId, const QgsRenderer *renderer )
 {
   const QgsUniqueValueRenderer *uniqValRenderer = dynamic_cast<const QgsUniqueValueRenderer *>( renderer );
   QgsSymbol *symbol = symbolForFeature( feature, uniqValRenderer );
@@ -236,6 +250,7 @@ QString QgsKmlConverter::vlayerStyleId( QgsFeature *feature, QString styleId, co
     return "";
 }
 
+// create string with kml style description section, all values takes from settings
 QString QgsKmlConverter::styleKmlSingleSymbol( QString styleId, QGis::GeometryType typeOfFeature )
 {
   double tmpDouble;
@@ -304,6 +319,7 @@ QString QgsKmlConverter::styleKmlSingleSymbol( QString styleId, QGis::GeometryTy
   return result;
 }
 
+// create string with kml style description section for each symbols, all values takes from settings
 QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList<QgsSymbol *> symbols,
                                               QGis::GeometryType typeOfFeature )
 {
@@ -378,16 +394,20 @@ QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList
   return result;
 }
 
+// convert wkt coordinates of point to kml with current values of altitude, extrude and altitude mode
 QString QgsKmlConverter::wkt2kmlPoint( QString wktPoint)
 {
   QString result;
+  QSettings settings;
   QTextStream out( &result );
+  int altitudeVal = settings.value( "/qgis2google/point/altitudevalue" ).toInt();
+  QString altitudeMode = settings.value( "/qgis2google/point/altitudemode" ).toString();
 
   wktPoint = wktPoint.replace( " ", "," );
+  if ( altitudeMode != "clampToGround" && altitudeMode != "clampToSeaFloor" && altitudeVal != -1 )
+    wktPoint = wktPoint + "," + QString::number( altitudeVal );
 
-  QSettings settings;
   int extrude = settings.value( "/qgis2google/point/extrude" ).toInt();
-  QString altitudeMode = settings.value( "/qgis2google/point/altitudemode" ).toString();
   out << "<Point>" << endl
       << "<extrude>" << extrude << "</extrude>" << endl
       << "<altitudeMode>" << altitudeMode << "</altitudeMode>" << endl
@@ -397,18 +417,22 @@ QString QgsKmlConverter::wkt2kmlPoint( QString wktPoint)
   return result;
 }
 
+// convert wkt coordinates of line to kml with current values of altitude, extrude and altitude mode
 QString QgsKmlConverter::wkt2kmlLine( QString wktLine)
 {
   QString result;
+  QSettings settings;
   QTextStream out( &result );
+  int altitudeVal = settings.value( "/qgis2google/line/altitudevalue" ).toInt();
+  QString altitudeMode = settings.value( "/qgis2google/line/altitudemode" ).toString();
 
   wktLine = wktLine.replace( " ", "," );
   wktLine = wktLine.replace( ",,", " " );
+  if ( altitudeMode != "clampToGround" && altitudeMode != "clampToSeaFloor" && altitudeVal != -1 )
+    wktLine = wktLine.replace( " ", QString( ",%1 " ).arg( altitudeVal ) );
 
-  QSettings settings;
   int extrude = settings.value( "/qgis2google/line/extrude" ).toInt();
   int tessellate = settings.value( "/qgis2google/line/tessellate" ).toInt();
-  QString altitudeMode = settings.value( "/qgis2google/line/altitudemode" ).toString();
   out << "<LineString>" << endl
       << "<extrude>" << extrude << "</extrude>" << endl
       << "<tessellate>" << tessellate << "</tessellate>" << endl
@@ -419,6 +443,7 @@ QString QgsKmlConverter::wkt2kmlLine( QString wktLine)
   return result;
 }
 
+// convert wkt coordinates of polygon to kml with current values of altitude, extrude and altitude mode
 QString QgsKmlConverter::wkt2kmlPolygon( QString wktPolygon)
 {
   QString result;
@@ -461,6 +486,8 @@ QString QgsKmlConverter::wkt2kmlPolygon( QString wktPolygon)
   return result;
 }
 
+
+// convert wkt coordinates to kml string
 QString QgsKmlConverter::convertWktToKml( QString wkt )
 {
   QString result;
@@ -495,7 +522,6 @@ QString QgsKmlConverter::convertWktToKml( QString wkt )
   {
     QString mpolygon = wkt.mid( 15, wkt.length() - 18);
     QStringList mpolygonList = mpolygon.split( ")),((" );
-    //    out.setString( &result );
 
     out << "<MultiGeometry>" << endl;
     foreach ( QString polygon, mpolygonList )
@@ -506,12 +532,14 @@ QString QgsKmlConverter::convertWktToKml( QString wkt )
   }
   else
   {
-    QgsLogger::debug( tr( "Error unable to convert wkt to kml" ) );
+    QgsLogger::debug( tr( "Error: Unable to convert wkt to kml" ) );
+    Q_ASSERT( 0 );
   }
 
   return result;
 }
 
+// generate name for temporary file
 QString QgsKmlConverter::genTempFileName()
 {
   QString tempFileName( "" );
@@ -526,6 +554,7 @@ QString QgsKmlConverter::genTempFileName()
   return tempFileName;
 }
 
+// open for write temporary file
 QFile *QgsKmlConverter::getTempFile()
 {
   QString tempFileName = genTempFileName();
@@ -537,6 +566,7 @@ QFile *QgsKmlConverter::getTempFile()
       QMessageBox::critical( NULL, tr( "File open" ), tr( "Unable to open the temprory file %1" )
                              .arg( tempFile->fileName() ) );
       QgsLogger::debug( tr( "Unable to open the temprory file %1" ) );
+      Q_ASSERT( 0 );
       return NULL;
     }
     mTempKmlFiles.push_back( tempFile );
@@ -545,7 +575,8 @@ QFile *QgsKmlConverter::getTempFile()
   return NULL;
 }
 
-QString QgsKmlConverter::htmlString( QString in )
+// remove escape character from kml file string
+QString QgsKmlConverter::removeEscapeChars( QString in )
 {
   return in.replace( QRegExp( "&(?!amp;)" ), "&amp;" );
 }

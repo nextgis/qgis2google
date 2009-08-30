@@ -27,9 +27,21 @@ QT4_WRAP_UI (qgis2google_UIS_H  ${qgis2google_UIS})
 
 QT4_WRAP_CPP (qgis2google_MOC_SRCS  ${qgis2google_MOC_HDRS})
 
-QT4_ADD_RESOURCES(qgis2google_RCC_SRCS ${qgis2google_RCCS})
+QT4_ADD_RESOURCES (qgis2google_RCC_SRCS ${qgis2google_RCCS})
 
-ADD_LIBRARY (qgis2googleplugin MODULE ${qgis2google_SRCS} ${qgis2google_MOC_SRCS} ${qgis2google_RCC_SRCS} ${qgis2google_UIS_H})
+QT4_CREATE_TRANSLATION (qgis2google_TRANS_QMS
+    ${qgis2google_UIS}
+    ${qgis2google_MOC_HDRS} 
+    ${qgis2google_SRCS}
+)
+
+ADD_LIBRARY (qgis2googleplugin MODULE
+    ${qgis2google_SRCS} 
+    ${qgis2google_MOC_SRCS} 
+    ${qgis2google_RCC_SRCS} 
+    ${qgis2google_UIS_H}
+    ${qgis2google_TRANS_QMS}
+)
 
 INCLUDE_DIRECTORIES(
      ${CMAKE_CURRENT_BINARY_DIR}

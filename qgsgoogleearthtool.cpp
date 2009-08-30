@@ -71,12 +71,19 @@ void QgsGoogleEarthTool::canvasReleaseEvent( QMouseEvent *e )
       mGERect.setRight( e->pos().x() );
       mGERect.setBottom( e->pos().y() );
 
+      // get features list selected by rectangle
       featureList = selecteManyFeatures( vlayer, mGERect );
     }
     else
+    {
+      // get selected feature
       featureList = selectOneFeature( vlayer, e->pos() );
+    }
 
+    // export selected features to kml
     QString tempFileName = kmlConverter->exportToKmlFile( vlayer, featureList );
+
+    // open kml in Google Earth
     if ( !tempFileName.isEmpty() && QFileInfo( tempFileName ).exists() )
       QDesktopServices::openUrl( QUrl( "file:///" + tempFileName ) );
   }
@@ -96,7 +103,9 @@ void QgsGoogleEarthTool::exportLayerToKml()
   QgsVectorLayer *vlayer = dynamic_cast<QgsVectorLayer*>( mCanvas->currentLayer() );
   if ( vlayer )
   {
+    // export active layer to kml
     QString tempFileName = kmlConverter->exportLayerToKmlFile( vlayer );
+    // open kml in Google Earth
     QDesktopServices::openUrl( QUrl( "file:///" + tempFileName ) );
   }
 }
@@ -117,14 +126,16 @@ QgsFeatureList QgsGoogleEarthTool::selectOneFeature( QgsVectorLayer *vlayer, con
         //otherwise just use the click point for polys
         boxSize = 1;
     }
+
     select_rect.setLeft( pos.x() - boxSize );
     select_rect.setRight( pos.x() + boxSize );
     select_rect.setTop( pos.y() - boxSize );
     select_rect.setBottom( pos.y() + boxSize );
+
+    // transform rectangle to map coordinate
     const QgsMapToPixel* transform = mCanvas->getCoordinateTransform();
     QgsPoint ll = transform->toMapCoordinates( select_rect.left(), select_rect.bottom() );
     QgsPoint ur = transform->toMapCoordinates( select_rect.right(), select_rect.top() );
-
     QgsRectangle searchRect( ll.x(), ll.y(), ur.x(), ur.y() );
 
     selecteFeatures( vlayer, searchRect );

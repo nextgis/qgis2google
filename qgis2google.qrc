@@ -1,7 +1,8 @@
 <RCC>
-    <qresource prefix="/qgis2google/" >
-      <file>layer_to_google_earth.png</file>
-      <file>feature_to_google_earth.png</file>
-      <file>settings.png</file>
+    <qresource prefix="/plugins/qgis2google/" >
+      <file>icons/layer_to_google_earth.png</file>
+      <file>icons/feature_to_google_earth.png</file>
+      <file>icons/settings.png</file>
+      <file>translations/qgis2google_ru.qm</file>
     </qresource>
 </RCC>

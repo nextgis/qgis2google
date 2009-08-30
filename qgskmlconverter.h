@@ -14,9 +14,9 @@ class QgsSymbol;
 class QgsVectorLayer;
 class QgsUniqueValueRenderer;
 
-class QgsKmlConverter : public QObject
+class QgsKmlConverter
 {
-  Q_OBJECT
+  Q_DECLARE_TR_FUNCTIONS(QgsKmlConverter);
 
 public:
   QgsKmlConverter();
@@ -44,10 +44,10 @@ private:
   QString wkt2kmlLine( QString wktLine);
   QString wkt2kmlPolygon( QString wktPolygon);
 
-  QString vlayerStyleId( QgsFeature *feature, QString styleId, const QgsRenderer *renderer );
+  QString featureStyleId( QgsFeature *feature, QString styleId, const QgsRenderer *renderer );
   QgsSymbol *symbolForFeature( QgsFeature *feature, const QgsUniqueValueRenderer *urenderer );
 
-  QString htmlString( QString in );
+  QString removeEscapeChars( QString in );
   QRgb rgba2abgr( QColor color );
 
   QList<QFile *> mTempKmlFiles;

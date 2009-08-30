@@ -51,7 +51,7 @@
 
 static const char * const sIdent = "$Id: plugin.cpp 9327 2008-09-14 11:18:44Z jef $";
 static const QString sDescription = QObject::tr( "Quickly send selected objects or layer to Google Earth" );
-static const QString sPluginVersion = QObject::tr( "Version 2.0" );
+static const QString sPluginVersion = QObject::tr( "Version 2.3" );
 static const QString sName = QObject::tr( "qgis2google" ) + " (" + sPluginVersion + ")";
 static const QgisPlugin::PLUGINTYPE sPluginType = QgisPlugin::UI;
 
@@ -70,6 +70,16 @@ qgis2google::qgis2google( QgisInterface  *theQgisInterface ):
     QgisPlugin( sName, sDescription, sPluginVersion, sPluginType ),
     mQGisIface( theQgisInterface ), mPluginName( "qgis2google" )
 {
+  QSettings settings;
+  QTranslator translator;
+  QString locale = settings.value( "locale/userLocale" ).toString();
+
+  QString loc = locale.split( "_" ).at( 0 );
+  bool bTranslationLoaded = translator.load( ":/plugins/qgis2google/translations/qgis2google_" + locale );
+  if ( bTranslationLoaded )
+    QgsApplication::installTranslator( &translator );
+  else
+    qDebug() << "Unable to load translator";
 }
 
 qgis2google::~qgis2google()
@@ -86,17 +96,17 @@ void qgis2google::initGui()
 
   mSendToEarthTool = new QgsGoogleEarthTool( mQGisIface->mapCanvas() );
 
-  mFeatureToEarthAction = mToolsToolBar->addAction( QIcon( ":/qgis2google/feature_to_google_earth.png" ), tr( "Send feature to Google Earth" ) );
+  mFeatureToEarthAction = mToolsToolBar->addAction( QIcon( ":/plugins/qgis2google/icons/feature_to_google_earth.png" ), tr( "Send feature to Google Earth" ) );
   mFeatureToEarthAction->setCheckable( true );
   connect( mFeatureToEarthAction, SIGNAL( triggered() ), SLOT( setToolToEarth() ) );
   mQGisIface->addPluginToMenu( mPluginName, mFeatureToEarthAction );
 
-  mLayerToEarthAction = new QAction( QIcon( ":/qgis2google/layer_to_google_earth.png"), tr( "Send layer to Google Earth" ), this );
+  mLayerToEarthAction = new QAction( QIcon( ":/plugins/qgis2google/icons/layer_to_google_earth.png"), tr( "Send layer to Google Earth" ), this );
   connect( mLayerToEarthAction, SIGNAL( triggered() ), mSendToEarthTool, SLOT( exportLayerToKml() ) );
   mQGisIface->addPluginToMenu( mPluginName, mLayerToEarthAction );
   mToolsToolBar->addAction( mLayerToEarthAction );
 
-  mSettingsAction = new QAction( QIcon( ":/qgis2google/settings.png" ), tr( "Settings" ), this );
+  mSettingsAction = new QAction( QIcon( ":/plugins/qgis2google/icons/settings.png" ), tr( "Settings" ), this );
   connect( mSettingsAction, SIGNAL( triggered() ), SLOT( settings() ) );
   mQGisIface->addPluginToMenu( mPluginName, mSettingsAction );
   mToolsToolBar->addAction( mSettingsAction );
@@ -125,11 +135,13 @@ void qgis2google::unload()
   disconnect( mQGisIface, SIGNAL(currentLayerChanged(QgsMapLayer*)), this, SLOT(setDefaultSettings(QgsMapLayer*)) );
   disconnect( mInfoAction, SIGNAL( triggered() ), this, SLOT( about() ) );
 
+  mQGisIface->removePluginMenu( mPluginName, mFeatureToEarthAction );
   mQGisIface->removePluginMenu( mPluginName, mLayerToEarthAction );
   mQGisIface->removePluginMenu( mPluginName, mSettingsAction );
   mQGisIface->removePluginMenu( mPluginName, mInfoAction );
-  mToolsToolBar->removeAction( mSettingsAction );
+  mToolsToolBar->removeAction( mFeatureToEarthAction );
   mToolsToolBar->removeAction( mLayerToEarthAction );
+  mToolsToolBar->removeAction( mSettingsAction );
 
   delete mSendToEarthTool;
   delete mToolsToolBar;
@@ -154,6 +166,7 @@ void qgis2google::settings()
   settingsDialog.exec();
 }
 
+// Set default values for function that exporting layer to kml
 void qgis2google::setDefaultSettings( QgsMapLayer *layer )
 {
   QgsApplication::setOrganizationName( "gis-lab" );
@@ -164,11 +177,14 @@ void qgis2google::setDefaultSettings( QgsMapLayer *layer )
 
   bool settingsForAllLayers = settings.value( "/qgis2google/settingsforalllayers", 0 ).toBool();
   QgsVectorLayer *vlayer = dynamic_cast<QgsVectorLayer *>(layer);
+
+  // if checked checkbox "Use to override default settings" the default values will not be set
   if ( vlayer && !settingsForAllLayers )
   {
     QList<QgsSymbol *> symbols = vlayer->renderer()->symbols();
     if ( symbols.size() == 1 )
     {
+      // read default values for kml from symbology
       QgsSymbol *symbol = symbols.first();
       if ( !symbol )
         return;
@@ -269,10 +285,10 @@ void qgis2google::about()
   lines->addWidget( new QLabel( "<b>" + sPluginVersion + "</b>" ) );
   lines->addWidget( new QLabel( tr( "<b>Developers:</b>" ) ) );
   lines->addWidget( new QLabel( "    Jack iRox" ) );
-  lines->addWidget( new QLabel( "    sploid (sploid@mail.ru)" ) );
-  lines->addWidget( new QLabel( "    Maxim Dubinin (sim@gis-lab.info)" ) );
+  lines->addWidget( new QLabel( "    Maxim Dubinin" ) );
+  lines->addWidget( new QLabel( "    sploid" ) );
   lines->addWidget( new QLabel( tr( "<b>Link:</b>" ) ) );
-  QLabel *link = new QLabel( "<a href=\"http://gis-lab.info\">http://gis-lab.info</a>" );
+  QLabel *link = new QLabel( tr( "<a href=\"http://gis-lab.info/qa/qgis2google-eng.html\">http://gis-lab.info</a>" ) );
   link->setOpenExternalLinks( true );
   lines->addWidget( link );
 
