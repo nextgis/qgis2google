@@ -47,28 +47,17 @@ private slots:
   void on_sbxLineOpacity_valueChanged( int value );
   void on_sbxPolyOpacity_valueChanged( int value );
 
-  void on_rbnPoint_toggled( bool checked );
-  void on_rbnLine_toggled( bool checked );
-  void on_rbnPoly_toggled( bool checked );
-
-  void on_chbSettingsForAllLayers_toggled( bool checked );
-  void on_tabWidget_currentChanged( int index );
+  void on_chbOverrideLayerStyle_toggled( bool checked );
 
 private:
   void initComboBoxes();
-  void initFeatureRadioButton( QGis::GeometryType typeOfFeature );
+  void setTypeOfTab( QGis::GeometryType typeOfFeature );
 
   void readSettings();
   void writeSettings();
 
-  void setWidgetsForFeature( QGis::GeometryType typeOfFeature );
   void enableAltitudeControl( QLabel *label, QSpinBox *spinBox, bool enable );
   void altitudeControl( QString str, bool enable );
-
-  void showRadioButtonGrp();
-  void hideRadioButtonGrp();
-  void showFeatureStyleGroupBox();
-  void hideFeatureStyleGroupBox();
 
   int qstringToBool( QString boolStr );
   QString boolToQString ( int boolVal );
@@ -81,7 +70,6 @@ private:
 
   void setAltitudeItemsData( QComboBox *comboBox );
   void setColorModeItemsData( QComboBox *comboBox );
-//  void setUnitsData( QComboBox *comboBox );
 
   void setAltitudeModeToolTip( QComboBox *comboBox );
 

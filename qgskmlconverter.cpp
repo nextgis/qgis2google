@@ -78,6 +78,14 @@ QString QgsKmlConverter::exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatu
   bool bSingleSymbol = renderer->name() == "Single Symbol";
   bool bUniqueValue = renderer->name() == "Unique Value";
 
+  QSettings settings;
+  bool bOverideUniqueValue = settings.value( "/qgis2google/overridelayerstyle" ).toBool();
+  if ( bOverideUniqueValue )
+  {
+    bSingleSymbol = true;
+    bUniqueValue = false;
+  }
+
   if ( bSingleSymbol )
   {
     // create style kml for one symbol and convert getted line to html (e.g. replace & to &amp;)
@@ -270,10 +278,10 @@ QString QgsKmlConverter::styleKmlSingleSymbol( QString styleId, QGis::GeometryTy
       << "<scale>" << tmpDouble << "</scale>" << endl
       << "</LabelStyle>" << endl;
 
-  switch ( typeOfFeature )
-  {
-  case QGis::Point:
-    {
+//  switch ( typeOfFeature )
+//  {
+//  case QGis::Point:
+//    {
       color = settings.value( "/qgis2google/icon/color" ).value<QColor>();
       colorMode = settings.value( "/qgis2google/icon/colormode" ).toString();
       tmpDouble = settings.value( "/qgis2google/icon/scale" ).toDouble();
@@ -283,10 +291,10 @@ QString QgsKmlConverter::styleKmlSingleSymbol( QString styleId, QGis::GeometryTy
           << "<scale>" << tmpDouble << "</scale>" << endl
           << "<Icon>" << endl << "<href>" << myPathToIcon << "</href>" << endl << "</Icon>" << endl
           << "</IconStyle>" << endl;
-      break;
-    }
-  case QGis::Line:
-    {
+//      break;
+//    }
+//  case QGis::Line:
+//    {
       color = settings.value( "/qgis2google/line/color" ).value<QColor>();
       colorMode = settings.value( "/qgis2google/line/colormode" ).toString();
       tmpDouble = settings.value( "/qgis2google/line/width" ).toDouble();
@@ -295,10 +303,10 @@ QString QgsKmlConverter::styleKmlSingleSymbol( QString styleId, QGis::GeometryTy
           << "<colorMode>" << colorMode << "</colorMode>" << endl
           << "<width>" << tmpDouble << "</width>" << endl
           << "</LineStyle>" << endl;
-      break;
-    }
-  case QGis::Polygon:
-    {
+//      break;
+//    }
+//  case QGis::Polygon:
+//    {
       color = settings.value( "/qgis2google/poly/color" ).value<QColor>();
       colorMode = settings.value( "/qgis2google/poly/colormode" ).toString();
       int fill = settings.value( "/qgis2google/poly/fill" ).toInt();
@@ -309,10 +317,10 @@ QString QgsKmlConverter::styleKmlSingleSymbol( QString styleId, QGis::GeometryTy
           << "<fill>" << fill << "</fill>" << endl
           << "<outline>" << outline << "</outline>" << endl
           << "</PolyStyle>" << endl;
-    }
-  case QGis::UnknownGeometry:
-    break;
-  }
+//    }
+//  case QGis::UnknownGeometry:
+//    break;
+//  }
 
   out << "</Style>";
 
@@ -349,30 +357,30 @@ QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList
         << "<scale>" << scale << "</scale>" << endl
         << "</LabelStyle>" << endl;
 
-    switch ( typeOfFeature )
-    {
-    case QGis::Point:
-      {
+//    switch ( typeOfFeature )
+//    {
+//    case QGis::Point:
+//      {
         out << "<IconStyle>" << endl
             << "<color>" << hex << rgba2abgr( fillColor ) << dec << "</color>" << endl
             << "<colorMode>" << colorMode << "</colorMode>" << endl
             << "<scale>" << scale << "</scale>" << endl
             << "<Icon>" << endl << "<href>" << myPathToIcon << "</href>" << endl << "</Icon>" << endl
             << "</IconStyle>" << endl;
-        break;
-      }
-    case QGis::Line:
-      {
+//        break;
+//      }
+//    case QGis::Line:
+//      {
         double lineWidth = symbol->lineWidth();
         out << "<LineStyle>" << endl
             << "<color>" << hex << rgba2abgr( color ) << dec << "</color>" << endl
             << "<colorMode>" << colorMode << "</colorMode>" << endl
             << "<width>" << lineWidth << "</width>" << endl
             << "</LineStyle>" << endl;
-        break;
-      }
-    case QGis::Polygon:
-      {
+//        break;
+//      }
+//    case QGis::Polygon:
+//      {
         int bPolyStyle = symbol->brush().style() != Qt::NoBrush;
         int fill = bPolyStyle;
         bPolyStyle = symbol->pen().style() != Qt::NoPen;
@@ -383,11 +391,11 @@ QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList
             << "<fill>" << fill << "</fill>" << endl
             << "<outline>" << outline << "</outline>" << endl
             << "</PolyStyle>" << endl;
-        break;
-      }
-    case QGis::UnknownGeometry:
-      break;
-    }
+//        break;
+//      }
+//    case QGis::UnknownGeometry:
+//      break;
+//    }
 
     out << "</Style>";
   }

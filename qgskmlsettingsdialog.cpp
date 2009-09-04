@@ -17,7 +17,7 @@ QgsKmlSettingsDialog::QgsKmlSettingsDialog(QWidget *parent, QGis::GeometryType t
   QgsApplication::setOrganizationDomain( "gis-lab.info" );
   QgsApplication::setApplicationName( "qgis2google" );
 
-  initFeatureRadioButton( typeOfFeature );
+  setTypeOfTab( typeOfFeature );
   readSettings();
 }
 
@@ -34,6 +34,23 @@ void QgsKmlSettingsDialog::changeEvent(QEvent *e)
     m_ui->retranslateUi(this);
     break;
   default:
+    break;
+  }
+}
+
+void QgsKmlSettingsDialog::setTypeOfTab( QGis::GeometryType typeOfFeature )
+{
+  switch ( typeOfFeature )
+  {
+  case QGis::Point:
+    m_ui->tabWidget->setCurrentIndex( 0 ); // Point
+    break;
+  case QGis::Line:
+    m_ui->tabWidget->setCurrentIndex( 1 ); // Line
+    break;
+  case QGis::Polygon:
+    m_ui->tabWidget->setCurrentIndex( 2 ); // Polygone
+  case QGis::UnknownGeometry:
     break;
   }
 }
@@ -142,18 +159,9 @@ void QgsKmlSettingsDialog::readSettings()
   QColor tmpColor;
   int tmpInt;
   double tmpDbl;
-  
-  tmpInt = settings.value( "/qgis2google/singlevalue", 1 ).toInt();
-  if ( tmpInt )
-    m_ui->tabWidget->insertTab( 0, m_ui->tabColorStyle, tr( "Color style" ) );
-  else
-    m_ui->tabWidget->removeTab( 0 );
 
-  hideFeatureStyleGroupBox();
-  tmpInt = settings.value( "/qgis2google/currenttab", 0 ).toInt();
-  m_ui->tabWidget->setCurrentIndex( tmpInt );
   move( settings.value( "/qgis2google/pos", QPoint( 0, 0 ) ).toPoint() );
-//  resize( settings.value( "/qgis2google/size", QSize( 370, 440 ) ).toSize() );
+  resize( settings.value( "/qgis2google/size" ).toSize() );
 
   tmpInt = settings.value( "/qgis2google/label/opacity", 100 ).toInt();
   m_ui->sbxLabelOpacity->setValue( tmpInt );
@@ -232,18 +240,16 @@ void QgsKmlSettingsDialog::readSettings()
   tmpInt = settings.value( "/qgis2google/poly/outline", 0 ).toBool();
   m_ui->cbPolyOutline->setCurrentIndex( m_ui->cbPolyOutline->findText( boolToQString( tmpInt ) ) );
 
-  // disable radio buttons because if checkbox will be set to false the signel toggled will not be emited
-  hideRadioButtonGrp();
-  tmpInt = settings.value( "/qgis2google/settingsforalllayers", 0 ).toBool();
-  m_ui->chbSettingsForAllLayers->setChecked( tmpInt );
+  m_ui->tabWidget->setEnabled( false );
+  tmpInt = settings.value( "/qgis2google/overridelayerstyle", 0 ).toBool();
+  m_ui->chbOverrideLayerStyle->setChecked( tmpInt );
 }
 
 void QgsKmlSettingsDialog::writeSettings()
 {
   QSettings settings;
 
-  settings.setValue( "/qgis2google/currenttab", m_ui->tabWidget->currentIndex() );
-//  settings.setValue( "/qgis2google/size", size() );
+  settings.setValue( "/qgis2google/size", size() );
   settings.setValue( "/qgis2google/pos", pos() );
 
   settings.setValue( "/qgis2google/label/color", getButtonColor( m_ui->pbLabelColor ) );
@@ -282,66 +288,7 @@ void QgsKmlSettingsDialog::writeSettings()
   settings.setValue( "/qgis2google/poly/fill", qstringToBool( m_ui->cbPolyFill->currentText() ) );
   settings.setValue( "/qgis2google/poly/outline", qstringToBool( m_ui->cbPolyOutline->currentText() ) );
 
-  settings.setValue( "/qgis2google/settingsforalllayers", m_ui->chbSettingsForAllLayers->isChecked() );
-}
-
-void QgsKmlSettingsDialog::initFeatureRadioButton( QGis::GeometryType typeOfFeature )
-{
-  switch ( typeOfFeature )
-  {
-  case QGis::Point:
-    {
-      m_ui->rbnPoint->setChecked( true );
-      break;
-    }
-  case QGis::Line:
-    {
-      m_ui->rbnLine->setChecked( true );
-      break;
-    }
-  case QGis::Polygon:
-    {
-      m_ui->rbnPoly->setChecked( true );
-      break;
-    }
-  case QGis::UnknownGeometry:
-    break;
-  }
-}
-
-void QgsKmlSettingsDialog::setWidgetsForFeature( QGis::GeometryType typeOfFeature )
-{
-  switch ( typeOfFeature )
-  {
-  case QGis::Point:
-    {
-      m_ui->gbIconStyle->show();
-      m_ui->gbLineStyle->hide();
-      m_ui->gbPolyStyle->hide();
-      m_ui->stackedWidgetGeometry->setCurrentIndex( 0 );
-      break;
-    }
-  case QGis::Line:
-    {
-      m_ui->gbIconStyle->hide();
-      m_ui->gbLineStyle->show();
-      m_ui->gbPolyStyle->hide();
-      m_ui->stackedWidgetGeometry->setCurrentIndex( 1 );
-      break;
-    }
-  case QGis::Polygon:
-    {
-      m_ui->gbIconStyle->hide();
-      m_ui->gbLineStyle->hide();
-      m_ui->gbPolyStyle->show();
-      m_ui->stackedWidgetGeometry->setCurrentIndex( 2 );
-      break;
-    }
-  case QGis::UnknownGeometry:
-    break;
-  }
-
-  layout()->setSizeConstraint( QLayout::SetFixedSize );
+  settings.setValue( "/qgis2google/overridelayerstyle", m_ui->chbOverrideLayerStyle->isChecked() );
 }
 
 void QgsKmlSettingsDialog::on_buttonBox_accepted()
@@ -606,78 +553,7 @@ void QgsKmlSettingsDialog::on_sbxPolyOpacity_valueChanged( int value )
   setButtonColor( m_ui->pbPolyColor, btnColor );
 }
 
-// rgrpFeatures
-void QgsKmlSettingsDialog::on_rbnPoint_toggled( bool checked )
+void QgsKmlSettingsDialog::on_chbOverrideLayerStyle_toggled( bool checked )
 {
-  if ( checked )
-    setWidgetsForFeature( QGis::Point );
-}
-
-void QgsKmlSettingsDialog::on_rbnLine_toggled( bool checked )
-{
-  if ( checked )
-    setWidgetsForFeature( QGis::Line );
-}
-
-void QgsKmlSettingsDialog::on_rbnPoly_toggled( bool checked )
-{
-  if ( checked )
-    setWidgetsForFeature( QGis::Polygon );
-}
-
-void QgsKmlSettingsDialog::hideRadioButtonGrp()
-{
-  m_ui->rbnPoint->hide();
-  m_ui->rbnLine->hide();
-  m_ui->rbnPoly->hide();
-  layout()->setSizeConstraint( QLayout::SetFixedSize );
-}
-
-void QgsKmlSettingsDialog::showRadioButtonGrp()
-{
-  m_ui->rbnPoint->show();
-  m_ui->rbnLine->show();
-  m_ui->rbnPoly->show();
-  layout()->setSizeConstraint( QLayout::SetFixedSize );
-}
-
-void QgsKmlSettingsDialog::on_chbSettingsForAllLayers_toggled( bool checked )
-{
-  if ( checked )
-    showRadioButtonGrp();
-  else
-    hideRadioButtonGrp();
-}
-
-void QgsKmlSettingsDialog::showFeatureStyleGroupBox()
-{
-  m_ui->gbLabelStyle->show();
-  if ( m_ui->rbnPoint->isChecked() )
-    m_ui->gbIconStyle->show();
-  else if ( m_ui->rbnLine->isChecked() )
-    m_ui->gbLineStyle->show();
-  else if ( m_ui->rbnPoly->isChecked() )
-    m_ui->gbPolyStyle->show();
-}
-
-void QgsKmlSettingsDialog::hideFeatureStyleGroupBox()
-{
-  m_ui->gbLabelStyle->hide();
-  m_ui->gbIconStyle->hide();
-  m_ui->gbLineStyle->hide();
-  m_ui->gbPolyStyle->hide();
-}
-
-void QgsKmlSettingsDialog::on_tabWidget_currentChanged( int index )
-{
-  switch ( index )
-  {
-  case 0:
-    showFeatureStyleGroupBox();
-    break;
-  case 1:
-    hideFeatureStyleGroupBox();
-    break;
-  }
-  layout()->setSizeConstraint( QLayout::SetFixedSize );
+  m_ui->tabWidget->setEnabled( checked );
 }
