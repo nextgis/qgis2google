@@ -23,18 +23,20 @@ public:
   ~QgsKmlConverter();
 
   QString exportLayerToKmlFile( QgsVectorLayer *vlayer );
-  QString exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatureList &flist );
+  QString exportFeaturesToKmlFile( QgsVectorLayer *vlayer, const QgsFeatureList &flist );
 
 private:
-  QString genTempFileName();
+  QString generateTempFileName();
   QFile *getTempFile();
 
   QString convertWktToKml( QString wktFormat );
+  QString convertWkbToKml( QgsGeometry *geometry );
 
   int attributeNameIndex( QgsVectorLayer *vlayer);
-  int attributeDescrIndex( QgsVectorLayer *vlayer);
+  int attributeDescriprionIndex( QgsVectorLayer *vlayer);
 
-  QString styleKmlSingleSymbol( QString styleId, QGis::GeometryType typeOfFeature );
+  QString styleKmlSingleSymbol( int transp, QgsSymbol *symbol, QString styleId,
+                                QGis::GeometryType typeOfFeature );
   QString styleKmlUniqueValue( int transp, QString styleId, QList<QgsSymbol *> symbols,
                                QGis::GeometryType typeOfFeature);
   QString placemarkNameKml( QgsVectorLayer *vlayer, QgsAttributeMap attrMap );
@@ -44,7 +46,7 @@ private:
   QString wkt2kmlLine( QString wktLine);
   QString wkt2kmlPolygon( QString wktPolygon);
 
-  QString featureStyleId( QgsFeature *feature, QString styleId, const QgsRenderer *renderer );
+  QString featureStyleId( QgsSymbol *symbol, QString styleId );
   QgsSymbol *symbolForFeature( QgsFeature *feature, const QgsUniqueValueRenderer *urenderer );
 
   QString removeEscapeChars( QString in );

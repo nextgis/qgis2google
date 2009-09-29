@@ -20,7 +20,7 @@ QgsKmlConverter::QgsKmlConverter()
 {
   QgsApplication::setOrganizationName( "gis-lab" );
   QgsApplication::setOrganizationDomain( "gis-lab.info" );
-  QgsApplication::setApplicationName( "qgis2google" );
+  QgsApplication::setApplicationName( "qgis2google2" );
 }
 
 QgsKmlConverter::~QgsKmlConverter()
@@ -46,12 +46,12 @@ QString QgsKmlConverter::exportLayerToKmlFile( QgsVectorLayer *vlayer )
     vlayer->invertSelection();
     QgsApplication::restoreOverrideCursor();
 
-    return exportToKmlFile( vlayer, featureList );
+    return exportFeaturesToKmlFile( vlayer, featureList );
   }
   return QString();
 }
 
-QString QgsKmlConverter::exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatureList &flist )
+QString QgsKmlConverter::exportFeaturesToKmlFile( QgsVectorLayer *vlayer, const QgsFeatureList &flist )
 {
   QgsApplication::setOverrideCursor( QCursor( Qt::WaitCursor ) );
   QFile *tempFile = getTempFile();
@@ -86,22 +86,29 @@ QString QgsKmlConverter::exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatu
     bUniqueValue = false;
   }
 
+  QString kmlStyle;
   if ( bSingleSymbol )
   {
+    QList<QgsSymbol *> symbols = vlayer->renderer()->symbols();
+    // read default values for kml from symbology
+    QgsSymbol *symbol = symbols.first();
+    if ( !symbol )
+      return "";
     // create style kml for one symbol and convert getted line to html (e.g. replace & to &amp;)
-    out << removeEscapeChars( styleKmlSingleSymbol( styleId, vlayer->geometryType() ) ) << endl;
+    kmlStyle = styleKmlSingleSymbol( vlayer->getTransparency(), symbol, styleId, vlayer->geometryType() );
   }
   else if ( bUniqueValue )
   {
     // create style kml for many symbols and convert getted line to html (e.g. replace & to &amp;)
-    out << removeEscapeChars( styleKmlUniqueValue( vlayer->getTransparency(), styleId, symbols,
-                                            vlayer->geometryType() ) ) << endl;
+    kmlStyle = styleKmlUniqueValue( vlayer->getTransparency(), styleId, symbols,
+                                            vlayer->geometryType() );
   }
   else
   {
     // dont process other renderers symbols
     return "";
   }
+  out << removeEscapeChars( kmlStyle ) << endl;
 
   // export eatch feature to kml format
   foreach ( QgsFeature feature, flist )
@@ -126,14 +133,13 @@ QString QgsKmlConverter::exportToKmlFile( QgsVectorLayer *vlayer, const QgsFeatu
       // try to find placemark description in attribute table (it should be in html format)
       out << placemarkDescriptionKml( vlayer, feature.attributeMap() ) << endl;
 
-      if ( bSingleSymbol )
+      if ( bUniqueValue )
       {
-        out << "<styleUrl>" << removeEscapeChars( styleId ) << "</styleUrl>" << endl;
+        const QgsUniqueValueRenderer *uniqValRenderer = dynamic_cast<const QgsUniqueValueRenderer *>( renderer );
+        QgsSymbol *symbol = symbolForFeature( &feature, uniqValRenderer );
+        styleId = featureStyleId( symbol, styleId );
       }
-      else // Unique Value
-      {
-        out << "<styleUrl>" << removeEscapeChars( featureStyleId( &feature, styleId, renderer ) ) << "</styleUrl>" << endl;
-      }
+      out << "<styleUrl>" << removeEscapeChars( styleId ) << "</styleUrl>" << endl;
 
       // convert wkt to kml and write to kml file
       QString wktFormat = geometry->exportToWkt();
@@ -185,7 +191,7 @@ QString QgsKmlConverter::placemarkNameKml( QgsVectorLayer *vlayer, QgsAttributeM
 }
 
 // try to find feature's description in attribute table
-int QgsKmlConverter::attributeDescrIndex( QgsVectorLayer *vlayer )
+int QgsKmlConverter::attributeDescriprionIndex( QgsVectorLayer *vlayer )
 {
   QgsAttributeList attributeList = vlayer->pendingAllAttributesList();
 
@@ -206,7 +212,7 @@ QString QgsKmlConverter::placemarkDescriptionKml( QgsVectorLayer *vlayer, QgsAtt
   QString result;
   QTextStream out( &result );
 
-  int index = attributeDescrIndex( vlayer );
+  int index = attributeDescriprionIndex( vlayer );
 
   if ( index > -1 )
   {
@@ -247,80 +253,86 @@ QgsSymbol *QgsKmlConverter::symbolForFeature( QgsFeature *feature, const QgsUniq
 }
 
 // create kml style identificator for feature
-QString QgsKmlConverter::featureStyleId( QgsFeature *feature, QString styleId, const QgsRenderer *renderer )
+QString QgsKmlConverter::featureStyleId( QgsSymbol *symbol, QString styleId )
 {
-  const QgsUniqueValueRenderer *uniqValRenderer = dynamic_cast<const QgsUniqueValueRenderer *>( renderer );
-  QgsSymbol *symbol = symbolForFeature( feature, uniqValRenderer );
-
-  if ( symbol )
+  if ( symbol && !symbol->lowerValue().isEmpty() )
     return styleId + STYLEIDDELIMIT + symbol->lowerValue();
   else
     return "";
 }
 
 // create string with kml style description section, all values takes from settings
-QString QgsKmlConverter::styleKmlSingleSymbol( QString styleId, QGis::GeometryType typeOfFeature )
+QString QgsKmlConverter::styleKmlSingleSymbol( int transp, QgsSymbol *symbol, QString styleId, QGis::GeometryType typeOfFeature )
 {
-  double tmpDouble;
+  double scale = 1.0;
   QSettings settings;
-  QString result, colorMode;
+  QString result, colorMode("normal");
   QTextStream out( &result );
-  QColor color;
+  QColor color, fillColor;
+  bool bOverrideLayerStyle = settings.value("/qgis2google/overridelayerstyle").toBool();
 
   out << "<Style id=\"" << styleId << "\">" << endl;
 
-  color = settings.value( "/qgis2google/label/color" ).value<QColor>();
-  colorMode = settings.value( "/qgis2google/label/colormode" ).toString();
-  tmpDouble = settings.value( "/qgis2google/label/scale" ).toDouble();
+  color = symbol->color();
+  color.setAlpha( transp );
+  fillColor = symbol->fillColor();
+  fillColor.setAlpha( transp );
+  double lineWidth = symbol->lineWidth();
+  int bPolyStyle = symbol->brush().style() != Qt::NoBrush;
+  int fill = bPolyStyle;
+  bPolyStyle = symbol->pen().style() != Qt::NoPen;
+  int outline = bPolyStyle;
+
+  if (bOverrideLayerStyle)
+  {
+    color = settings.value( "/qgis2google/label/color" ).value<QColor>();
+    colorMode = settings.value( "/qgis2google/label/colormode" ).toString();
+    scale = settings.value( "/qgis2google/label/scale" ).toDouble();
+  }
   out << "<LabelStyle>" << endl
       << "<color>" << hex << rgba2abgr( color ) << dec << "</color>" << endl
       << "<colorMode>" << colorMode << "</colorMode>" << endl
-      << "<scale>" << tmpDouble << "</scale>" << endl
+      << "<scale>" << scale << "</scale>" << endl
       << "</LabelStyle>" << endl;
 
-//  switch ( typeOfFeature )
-//  {
-//  case QGis::Point:
-//    {
-      color = settings.value( "/qgis2google/icon/color" ).value<QColor>();
-      colorMode = settings.value( "/qgis2google/icon/colormode" ).toString();
-      tmpDouble = settings.value( "/qgis2google/icon/scale" ).toDouble();
-      out << "<IconStyle>" << endl
-          << "<color>" << hex << rgba2abgr( color ) << dec << "</color>" << endl
-          << "<colorMode>" << colorMode << "</colorMode>" << endl
-          << "<scale>" << tmpDouble << "</scale>" << endl
-          << "<Icon>" << endl << "<href>" << myPathToIcon << "</href>" << endl << "</Icon>" << endl
-          << "</IconStyle>" << endl;
-//      break;
-//    }
-//  case QGis::Line:
-//    {
-      color = settings.value( "/qgis2google/line/color" ).value<QColor>();
-      colorMode = settings.value( "/qgis2google/line/colormode" ).toString();
-      tmpDouble = settings.value( "/qgis2google/line/width" ).toDouble();
-      out << "<LineStyle>" << endl
-          << "<color>" << hex << rgba2abgr( color ) << dec << "</color>" << endl
-          << "<colorMode>" << colorMode << "</colorMode>" << endl
-          << "<width>" << tmpDouble << "</width>" << endl
-          << "</LineStyle>" << endl;
-//      break;
-//    }
-//  case QGis::Polygon:
-//    {
-      color = settings.value( "/qgis2google/poly/color" ).value<QColor>();
-      colorMode = settings.value( "/qgis2google/poly/colormode" ).toString();
-      int fill = settings.value( "/qgis2google/poly/fill" ).toInt();
-      int outline = settings.value( "/qgis2google/poly/outline" ).toInt();
-      out << "<PolyStyle>" << endl
-          << "<color>" << hex << rgba2abgr( color ) << dec << "</color>" << endl
-          << "<colorMode>" << colorMode << "</colorMode>" << endl
-          << "<fill>" << fill << "</fill>" << endl
-          << "<outline>" << outline << "</outline>" << endl
-          << "</PolyStyle>" << endl;
-//    }
-//  case QGis::UnknownGeometry:
-//    break;
-//  }
+  if (bOverrideLayerStyle)
+  {
+    fillColor = settings.value( "/qgis2google/icon/color" ).value<QColor>();
+    colorMode = settings.value( "/qgis2google/icon/colormode" ).toString();
+    scale = settings.value( "/qgis2google/icon/scale" ).toDouble();
+  }
+  out << "<IconStyle>" << endl
+      << "<color>" << hex << rgba2abgr( fillColor ) << dec << "</color>" << endl
+      << "<colorMode>" << colorMode << "</colorMode>" << endl
+      << "<scale>" << scale << "</scale>" << endl
+      << "<Icon>" << endl << "<href>" << myPathToIcon << "</href>" << endl << "</Icon>" << endl
+      << "</IconStyle>" << endl;
+
+  if (bOverrideLayerStyle)
+  {
+    color = settings.value( "/qgis2google/line/color" ).value<QColor>();
+    colorMode = settings.value( "/qgis2google/line/colormode" ).toString();
+    lineWidth = settings.value( "/qgis2google/line/width" ).toDouble();
+  }
+  out << "<LineStyle>" << endl
+      << "<color>" << hex << rgba2abgr( color ) << dec << "</color>" << endl
+      << "<colorMode>" << colorMode << "</colorMode>" << endl
+      << "<width>" << lineWidth << "</width>" << endl
+      << "</LineStyle>" << endl;
+
+  if (bOverrideLayerStyle)
+  {
+    fillColor = settings.value( "/qgis2google/poly/color" ).value<QColor>();
+    colorMode = settings.value( "/qgis2google/poly/colormode" ).toString();
+    fill = settings.value( "/qgis2google/poly/fill" ).toInt();
+    outline = settings.value( "/qgis2google/poly/outline" ).toInt();
+  }
+  out << "<PolyStyle>" << endl
+      << "<color>" << hex << rgba2abgr( fillColor ) << dec << "</color>" << endl
+      << "<colorMode>" << colorMode << "</colorMode>" << endl
+      << "<fill>" << fill << "</fill>" << endl
+      << "<outline>" << outline << "</outline>" << endl
+      << "</PolyStyle>" << endl;
 
   out << "</Style>";
 
@@ -341,10 +353,7 @@ QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList
   {
     QString symbolName;
 
-    if ( !symbol->lowerValue().isEmpty() )
-      symbolName = symbol->lowerValue();
-
-    out << endl << "<Style id=\"" << styleId + STYLEIDDELIMIT + symbolName << "\">" << endl;
+    out << endl << "<Style id=\"" << featureStyleId( symbol, styleId ) << "\">" << endl;
 
     color = symbol->color();
     color.setAlpha( transp );
@@ -357,45 +366,30 @@ QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList
         << "<scale>" << scale << "</scale>" << endl
         << "</LabelStyle>" << endl;
 
-//    switch ( typeOfFeature )
-//    {
-//    case QGis::Point:
-//      {
-        out << "<IconStyle>" << endl
-            << "<color>" << hex << rgba2abgr( fillColor ) << dec << "</color>" << endl
-            << "<colorMode>" << colorMode << "</colorMode>" << endl
-            << "<scale>" << scale << "</scale>" << endl
-            << "<Icon>" << endl << "<href>" << myPathToIcon << "</href>" << endl << "</Icon>" << endl
-            << "</IconStyle>" << endl;
-//        break;
-//      }
-//    case QGis::Line:
-//      {
-        double lineWidth = symbol->lineWidth();
-        out << "<LineStyle>" << endl
-            << "<color>" << hex << rgba2abgr( color ) << dec << "</color>" << endl
-            << "<colorMode>" << colorMode << "</colorMode>" << endl
-            << "<width>" << lineWidth << "</width>" << endl
-            << "</LineStyle>" << endl;
-//        break;
-//      }
-//    case QGis::Polygon:
-//      {
-        int bPolyStyle = symbol->brush().style() != Qt::NoBrush;
-        int fill = bPolyStyle;
-        bPolyStyle = symbol->pen().style() != Qt::NoPen;
-        int outline = bPolyStyle;
-        out << "<PolyStyle>" << endl
-            << "<color>" << hex << rgba2abgr( fillColor ) << dec << "</color>" << endl
-            << "<colorMode>" << colorMode << "</colorMode>" << endl
-            << "<fill>" << fill << "</fill>" << endl
-            << "<outline>" << outline << "</outline>" << endl
-            << "</PolyStyle>" << endl;
-//        break;
-//      }
-//    case QGis::UnknownGeometry:
-//      break;
-//    }
+    out << "<IconStyle>" << endl
+        << "<color>" << hex << rgba2abgr( fillColor ) << dec << "</color>" << endl
+        << "<colorMode>" << colorMode << "</colorMode>" << endl
+        << "<scale>" << scale << "</scale>" << endl
+        << "<Icon>" << endl << "<href>" << myPathToIcon << "</href>" << endl << "</Icon>" << endl
+        << "</IconStyle>" << endl;
+
+    double lineWidth = symbol->lineWidth();
+    out << "<LineStyle>" << endl
+        << "<color>" << hex << rgba2abgr( color ) << dec << "</color>" << endl
+        << "<colorMode>" << colorMode << "</colorMode>" << endl
+        << "<width>" << lineWidth << "</width>" << endl
+        << "</LineStyle>" << endl;
+
+    int bPolyStyle = symbol->brush().style() != Qt::NoBrush;
+    int fill = bPolyStyle;
+    bPolyStyle = symbol->pen().style() != Qt::NoPen;
+    int outline = bPolyStyle;
+    out << "<PolyStyle>" << endl
+        << "<color>" << hex << rgba2abgr( fillColor ) << dec << "</color>" << endl
+        << "<colorMode>" << colorMode << "</colorMode>" << endl
+        << "<fill>" << fill << "</fill>" << endl
+        << "<outline>" << outline << "</outline>" << endl
+        << "</PolyStyle>" << endl;
 
     out << "</Style>";
   }
@@ -547,8 +541,12 @@ QString QgsKmlConverter::convertWktToKml( QString wkt )
   return result;
 }
 
+QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
+{
+}
+
 // generate name for temporary file
-QString QgsKmlConverter::genTempFileName()
+QString QgsKmlConverter::generateTempFileName()
 {
   QString tempFileName( "" );
   int currentIndex = 0;
@@ -565,7 +563,7 @@ QString QgsKmlConverter::genTempFileName()
 // open for write temporary file
 QFile *QgsKmlConverter::getTempFile()
 {
-  QString tempFileName = genTempFileName();
+  QString tempFileName = generateTempFileName();
   if ( !tempFileName.isEmpty() )
   {
     QFile *tempFile = new QFile( tempFileName );

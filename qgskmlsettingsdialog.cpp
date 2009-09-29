@@ -15,7 +15,7 @@ QgsKmlSettingsDialog::QgsKmlSettingsDialog(QWidget *parent, QGis::GeometryType t
 
   QgsApplication::setOrganizationName( "gis-lab" );
   QgsApplication::setOrganizationDomain( "gis-lab.info" );
-  QgsApplication::setApplicationName( "qgis2google" );
+  QgsApplication::setApplicationName( "qgis2google2" );
 
   setTypeOfTab( typeOfFeature );
   readSettings();

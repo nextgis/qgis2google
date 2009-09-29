@@ -81,7 +81,7 @@ void QgsGoogleEarthTool::canvasReleaseEvent( QMouseEvent *e )
     }
 
     // export selected features to kml
-    QString tempFileName = kmlConverter->exportToKmlFile( vlayer, featureList );
+    QString tempFileName = kmlConverter->exportFeaturesToKmlFile( vlayer, featureList );
 
     // open kml in Google Earth
     if ( !tempFileName.isEmpty() && QFileInfo( tempFileName ).exists() )
@@ -133,7 +133,7 @@ QgsFeatureList QgsGoogleEarthTool::selectOneFeature( QgsVectorLayer *vlayer, con
     select_rect.setBottom( pos.y() + boxSize );
 
     // transform rectangle to map coordinate
-    const QgsMapToPixel* transform = mCanvas->getCoordinateTransform();
+    const QgsMapToPixel *transform = mCanvas->getCoordinateTransform();
     QgsPoint ll = transform->toMapCoordinates( select_rect.left(), select_rect.bottom() );
     QgsPoint ur = transform->toMapCoordinates( select_rect.right(), select_rect.top() );
     QgsRectangle searchRect( ll.x(), ll.y(), ur.x(), ur.y() );

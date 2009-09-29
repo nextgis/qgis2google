@@ -51,8 +51,8 @@
 
 static const char * const sIdent = "$Id: plugin.cpp 9327 2008-09-14 11:18:44Z jef $";
 static const QString sDescription = QObject::tr( "Quickly send selected objects or layer to Google Earth" );
-static const QString sPluginVersion = QObject::tr( "Version 2.4" );
-static const QString sName = QObject::tr( "qgis2google" ) + " (" + sPluginVersion + ")";
+static const QString sPluginVersion = QObject::tr( "Version 2.5" );
+static const QString sName = QObject::tr( "qgis2google2" ) + " (" + sPluginVersion + ")";
 static const QgisPlugin::PLUGINTYPE sPluginType = QgisPlugin::UI;
 
 //////////////////////////////////////////////////////////////////////
@@ -173,7 +173,7 @@ void qgis2google::setDefaultSettings( QgsMapLayer *layer )
 
   QgsApplication::setOrganizationName( "gis-lab" );
   QgsApplication::setOrganizationDomain( "gis-lab.info" );
-  QgsApplication::setApplicationName( "qgis2google" );
+  QgsApplication::setApplicationName( "qgis2google2" );
 
   QgsVectorLayer *vlayer = dynamic_cast<QgsVectorLayer *>(layer);
   if ( vlayer )
