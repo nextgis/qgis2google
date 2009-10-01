@@ -41,10 +41,6 @@ private:
   QString placemarkNameKml( QgsVectorLayer *vlayer, QgsAttributeMap attrMap );
   QString placemarkDescriptionKml( QgsVectorLayer *vlayer, QgsAttributeMap attrMap );
 
-  QString wkt2kmlPoint( QString wktPoint);
-  QString wkt2kmlLine( QString wktLine);
-  QString wkt2kmlPolygon( QString wktPolygon);
-
   QString featureStyleId( QgsSymbol *symbol, QString styleId );
   QgsSymbol *symbolForFeature( QgsFeature *feature, const QgsUniqueValueRenderer *urenderer );
 
