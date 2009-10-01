@@ -101,7 +101,7 @@ QString QgsKmlConverter::exportFeaturesToKmlFile( QgsVectorLayer *vlayer, const 
   {
     // create style kml for many symbols and convert getted line to html (e.g. replace & to &amp;)
     kmlStyle = styleKmlUniqueValue( vlayer->getTransparency(), styleId, symbols,
-                                            vlayer->geometryType() );
+                                    vlayer->geometryType() );
   }
   else
   {
@@ -142,8 +142,7 @@ QString QgsKmlConverter::exportFeaturesToKmlFile( QgsVectorLayer *vlayer, const 
       out << "<styleUrl>" << removeEscapeChars( styleId ) << "</styleUrl>" << endl;
 
       // convert wkt to kml and write to kml file
-      QString wktFormat = geometry->exportToWkt();
-      out << convertWktToKml( wktFormat ) << endl;
+      out << convertWkbToKml(geometry) << endl;
       out << "</Placemark>" << endl;
     }
   }
@@ -396,153 +395,227 @@ QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList
   return result;
 }
 
-// convert wkt coordinates of point to kml with current values of altitude, extrude and altitude mode
-QString QgsKmlConverter::wkt2kmlPoint( QString wktPoint)
-{
-  QString result;
-  QSettings settings;
-  QTextStream out( &result );
-  int altitudeVal = settings.value( "/qgis2google/point/altitudevalue" ).toInt();
-  QString altitudeMode = settings.value( "/qgis2google/point/altitudemode" ).toString();
-
-  wktPoint = wktPoint.replace( " ", "," );
-  if ( altitudeMode != "clampToGround" && altitudeMode != "clampToSeaFloor" && altitudeVal != -1 )
-    wktPoint = wktPoint + "," + QString::number( altitudeVal );
-
-  int extrude = settings.value( "/qgis2google/point/extrude" ).toInt();
-  out << "<Point>" << endl
-      << "<extrude>" << extrude << "</extrude>" << endl
-      << "<altitudeMode>" << altitudeMode << "</altitudeMode>" << endl
-      << "<coordinates>" << wktPoint << "</coordinates>" << endl
-      << "</Point>";
-
-  return result;
-}
-
-// convert wkt coordinates of line to kml with current values of altitude, extrude and altitude mode
-QString QgsKmlConverter::wkt2kmlLine( QString wktLine)
-{
-  QString result;
-  QSettings settings;
-  QTextStream out( &result );
-  int altitudeVal = settings.value( "/qgis2google/line/altitudevalue" ).toInt();
-  QString altitudeMode = settings.value( "/qgis2google/line/altitudemode" ).toString();
-
-  wktLine = wktLine.replace( " ", "," );
-  wktLine = wktLine.replace( ",,", " " );
-  if ( altitudeMode != "clampToGround" && altitudeMode != "clampToSeaFloor" && altitudeVal != -1 )
-    wktLine = wktLine.replace( " ", QString( ",%1 " ).arg( altitudeVal ) );
-
-  int extrude = settings.value( "/qgis2google/line/extrude" ).toInt();
-  int tessellate = settings.value( "/qgis2google/line/tessellate" ).toInt();
-  out << "<LineString>" << endl
-      << "<extrude>" << extrude << "</extrude>" << endl
-      << "<tessellate>" << tessellate << "</tessellate>" << endl
-      << "<altitudeMode>" << altitudeMode << "</altitudeMode>" << endl
-      << "<coordinates>" << wktLine << "</coordinates>" << endl
-      << "</LineString>";
-
-  return result;
-}
-
-// convert wkt coordinates of polygon to kml with current values of altitude, extrude and altitude mode
-QString QgsKmlConverter::wkt2kmlPolygon( QString wktPolygon)
-{
-  QString result;
-  QTextStream out( &result );
-  QSettings settings;
-
-  int altitudeVal = settings.value( "/qgis2google/poly/altitudevalue" ).toInt();
-  QString altitudeMode = settings.value( "/qgis2google/poly/altitudemode" ).toString();
-  QStringList polygonList = wktPolygon.split( "),(" );
-
-  QStringList polygonKmlList;
-  foreach( QString poly, polygonList )
-  {
-    poly = poly.replace( ",", ",," );
-    poly = poly.replace( " ", "," );
-    poly = poly.replace( ",,", " " );
-    if ( altitudeMode != "clampToGround" && altitudeMode != "clampToSeaFloor" && altitudeVal != -1 )
-      poly = poly.replace( " ", QString( ",%1 " ).arg( altitudeVal ) );
-    polygonKmlList.append( poly );
-  }
-
-  int extrude = settings.value( "/qgis2google/poly/extrude" ).toInt();
-  int tessellate = settings.value( "/qgis2google/poly/tessellate" ).toInt();
-  out << "<Polygon>" << endl
-      << "<extrude>" << extrude << "</extrude>" << endl
-      << "<tessellate>" << tessellate << "</tessellate>" << endl
-      << "<gx:altitudeMode>" << altitudeMode << "</gx:altitudeMode>" << endl
-      << "<outerBoundaryIs>" << endl << "<LinearRing>" << endl
-      << "<coordinates>" << polygonKmlList.at( 0 ) << "</coordinates>" << endl
-      << "</LinearRing>" << endl << "</outerBoundaryIs>" << endl;
-
-  for( int i = 1; i < polygonKmlList.count(); i++ )
-  {
-    out << "<innerBoundaryIs>" << endl << "<LinearRing>" << endl
-        << "<coordinates>" << polygonKmlList.at( i ) << "</coordinates>" << endl
-        << "</LinearRing>" << endl << "</innerBoundaryIs>" << endl;
-  }
-
-  out << "</Polygon>";
-  return result;
-}
-
-
-// convert wkt coordinates to kml string
-QString QgsKmlConverter::convertWktToKml( QString wkt )
-{
-  QString result;
-  QTextStream out( &result );
-
-  if ( wkt.startsWith( "POINT", Qt::CaseInsensitive ) )
-  {
-    QString point = wkt.mid( 6, wkt.length() - 7);
-    out << wkt2kmlPoint( point );
-  }
-  else if ( wkt.startsWith( "MULTIPOINT", Qt::CaseInsensitive ) )
-  {
-    QString point = wkt.mid( 11, wkt.length() - 12);
-    out << wkt2kmlPoint( point );
-  }
-  else if ( wkt.startsWith( "LINESTRING", Qt::CaseInsensitive ) )
-  {
-    QString line = wkt.mid( 11, wkt.length() - 12);
-    out << wkt2kmlLine( line );
-  }
-  else if ( wkt.startsWith( "MULTILINESTRING", Qt::CaseInsensitive ) )
-  {
-    QString line = wkt.mid( 17, wkt.length() - 19);
-    out << wkt2kmlLine( line );
-  }
-  else if ( wkt.startsWith( "POLYGON", Qt::CaseInsensitive ) )
-  {
-    QString polygon = wkt.mid( 9, wkt.length() - 10);
-    out << wkt2kmlPolygon( polygon );
-  }
-  else if ( wkt.startsWith( "MULTIPOLYGON", Qt::CaseInsensitive ) )
-  {
-    QString mpolygon = wkt.mid( 15, wkt.length() - 18);
-    QStringList mpolygonList = mpolygon.split( ")),((" );
-
-    out << "<MultiGeometry>" << endl;
-    foreach ( QString polygon, mpolygonList )
-    {
-      out << wkt2kmlPolygon( polygon ) << endl;
-    }
-    out << "</MultiGeometry>";
-  }
-  else
-  {
-    QgsLogger::debug( tr( "Error: Unable to convert wkt to kml" ) );
-    Q_ASSERT( 0 );
-  }
-
-  return result;
-}
-
 QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
 {
+  QString result;
+  QSettings settings;
+  QTextStream out( &result );
+  bool hasZValue;
+
+  QGis::WkbType wkbType = geometry->wkbType();
+  switch (wkbType)
+  {
+  case QGis::WKBPoint25D:
+  case QGis::WKBPoint:
+    {
+      int altitudeVal = settings.value( "/qgis2google/point/altitudevalue" ).toInt();
+      QString altitudeMode = settings.value( "/qgis2google/point/altitudemode" ).toString();
+      hasZValue = altitudeMode != "clampToGround" && altitudeMode != "clampToSeaFloor" && altitudeVal != -1;
+
+      QgsPoint wkbPoint = geometry->asPoint();
+      QString pointString = QString::number(wkbPoint.x(), 'f', 6) + "," +
+                            QString::number(wkbPoint.y(), 'f', 6);
+      if ( hasZValue )
+        pointString.append("," + QString::number( altitudeVal, 'f', 6 ));
+
+      int extrude = settings.value( "/qgis2google/point/extrude" ).toInt();
+      out << "<Point>" << endl
+          << "<extrude>" << extrude << "</extrude>" << endl
+          << "<altitudeMode>" << altitudeMode << "</altitudeMode>" << endl
+          << "<coordinates>" << pointString << "</coordinates>" << endl
+          << "</Point>";
+
+      return result;
+    }
+  case QGis::WKBLineString25D:
+  case QGis::WKBLineString:
+    {
+      int altitudeVal = settings.value( "/qgis2google/line/altitudevalue" ).toInt();
+      QString altitudeMode = settings.value( "/qgis2google/line/altitudemode" ).toString();
+      hasZValue = altitudeMode != "clampToGround" && altitudeMode != "clampToSeaFloor" && altitudeVal != -1;
+
+      QgsPolyline wkbPolyline = geometry->asPolyline();
+      QString polylineString;
+      foreach (QgsPoint pt, wkbPolyline)
+      {
+        polylineString += QString::number(pt.x(), 'f', 6) + "," +
+                          QString::number(pt.y(), 'f', 6);
+        if (hasZValue)
+          polylineString += QString::number(altitudeVal, 'f', 6);
+
+        polylineString += " ";
+      }
+
+      int extrude = settings.value( "/qgis2google/line/extrude" ).toInt();
+      int tessellate = settings.value( "/qgis2google/line/tessellate" ).toInt();
+      out << "<LineString>" << endl
+          << "<extrude>" << extrude << "</extrude>" << endl
+          << "<tessellate>" << tessellate << "</tessellate>" << endl
+          << "<altitudeMode>" << altitudeMode << "</altitudeMode>" << endl
+          << "<coordinates>" << polylineString << "</coordinates>" << endl
+          << "</LineString>";
+
+      return result;
+    }    
+  case QGis::WKBPolygon25D:
+  case QGis::WKBPolygon:
+    {
+      int altitudeVal = settings.value( "/qgis2google/poly/altitudevalue" ).toInt();
+      QString altitudeMode = settings.value( "/qgis2google/poly/altitudemode" ).toString();
+      hasZValue = altitudeMode != "clampToGround" && altitudeMode != "clampToSeaFloor" && altitudeVal != -1;
+
+      QgsPolygon wkbPolygon = geometry->asPolygon();
+      QStringList polylineStringList;
+      foreach (QgsPolyline ln, wkbPolygon)
+      {
+        QString polylineString;
+        foreach (QgsPoint pt, ln)
+        {
+          polylineString += QString::number(pt.x(), 'f', 6) + "," +
+                            QString::number(pt.y(), 'f', 6);
+          if (hasZValue)
+            polylineString += QString::number(altitudeVal, 'f', 6);
+
+          polylineString += " ";
+        }
+        polylineStringList.append(polylineString);
+      }
+
+      int extrude = settings.value( "/qgis2google/poly/extrude" ).toInt();
+      int tessellate = settings.value( "/qgis2google/poly/tessellate" ).toInt();
+      out << "<Polygon>" << endl
+          << "<extrude>" << extrude << "</extrude>" << endl
+          << "<tessellate>" << tessellate << "</tessellate>" << endl
+          << "<gx:altitudeMode>" << altitudeMode << "</gx:altitudeMode>" << endl
+          << "<outerBoundaryIs>" << endl << "<LinearRing>" << endl
+          << "<coordinates>" << polylineStringList.at( 0 ) << "</coordinates>" << endl
+          << "</LinearRing>" << endl << "</outerBoundaryIs>" << endl;
+
+      for( int i = 1; i < polylineStringList.count(); i++ )
+      {
+        out << "<innerBoundaryIs>" << endl << "<LinearRing>" << endl
+            << "<coordinates>" << polylineStringList.at( i ) << "</coordinates>" << endl
+            << "</LinearRing>" << endl << "</innerBoundaryIs>" << endl;
+      }
+      out << "</Polygon>";
+
+      return result;
+    }
+  case QGis::WKBMultiPoint25D:
+  case QGis::WKBMultiPoint:
+    {
+      int altitudeVal = settings.value( "/qgis2google/point/altitudevalue" ).toInt();
+      QString altitudeMode = settings.value( "/qgis2google/point/altitudemode" ).toString();
+      hasZValue = altitudeMode != "clampToGround" && altitudeMode != "clampToSeaFloor" && altitudeVal != -1;
+
+      out << "<MultiGeometry>" << endl;
+      QgsMultiPoint wkbMultiPoint = geometry->asMultiPoint();
+      foreach (QgsPoint pt, wkbMultiPoint)
+      {
+        QString pointString = QString::number(pt.x(), 'f', 6) + "," +
+                              QString::number(pt.y(), 'f', 6);
+        if ( hasZValue )
+          pointString.append("," + QString::number( altitudeVal, 'f', 6 ));
+
+        int extrude = settings.value( "/qgis2google/point/extrude" ).toInt();
+        out << "<Point>" << endl
+            << "<extrude>" << extrude << "</extrude>" << endl
+            << "<altitudeMode>" << altitudeMode << "</altitudeMode>" << endl
+            << "<coordinates>" << pointString << "</coordinates>" << endl
+            << "</Point>" << endl;
+      }
+      out << "</MultiGeometry>";
+
+      return result;
+    }
+  case QGis::WKBMultiLineString25D:
+  case QGis::WKBMultiLineString:
+    {
+      int altitudeVal = settings.value( "/qgis2google/line/altitudevalue" ).toInt();
+      QString altitudeMode = settings.value( "/qgis2google/line/altitudemode" ).toString();
+      hasZValue = altitudeMode != "clampToGround" && altitudeMode != "clampToSeaFloor" && altitudeVal != -1;
+
+      out << "<MultiGeometry>" << endl;
+      QgsMultiPolyline wkbMultiPolyline = geometry->asMultiPolyline();
+      foreach (QgsPolyline ln, wkbMultiPolyline)
+      {
+        QString polylineString;
+        foreach (QgsPoint pt, ln)
+        {
+          polylineString += QString::number(pt.x(), 'f', 6) + "," +
+                            QString::number(pt.y(), 'f', 6);
+          if (hasZValue)
+            polylineString += QString::number(altitudeVal, 'f', 6);
+
+          polylineString += " ";
+        }
+
+        int extrude = settings.value( "/qgis2google/line/extrude" ).toInt();
+        int tessellate = settings.value( "/qgis2google/line/tessellate" ).toInt();
+        out << "<LineString>" << endl
+            << "<extrude>" << extrude << "</extrude>" << endl
+            << "<tessellate>" << tessellate << "</tessellate>" << endl
+            << "<altitudeMode>" << altitudeMode << "</altitudeMode>" << endl
+            << "<coordinates>" << polylineString << "</coordinates>" << endl
+            << "</LineString>" << endl;
+      }
+      out << "</MultiGeometry>";
+
+      return result;
+    }
+  case QGis::WKBMultiPolygon25D:
+  case QGis::WKBMultiPolygon:
+    {
+      int altitudeVal = settings.value( "/qgis2google/poly/altitudevalue" ).toInt();
+      QString altitudeMode = settings.value( "/qgis2google/poly/altitudemode" ).toString();
+      hasZValue = altitudeMode != "clampToGround" && altitudeMode != "clampToSeaFloor" && altitudeVal != -1;
+
+      out << "<MultiGeometry>" << endl;
+      QgsMultiPolygon wkbMultiPolygon = geometry->asMultiPolygon();
+      foreach (QgsPolygon pln, wkbMultiPolygon)
+      {
+        QStringList polylineStringList;
+        foreach (QgsPolyline ln, pln)
+        {
+          QString polylineString;
+          foreach (QgsPoint pt, ln)
+          {
+            polylineString += QString::number(pt.x(), 'f', 6) + "," +
+                              QString::number(pt.y(), 'f', 6);
+            if (hasZValue)
+              polylineString += QString::number(altitudeVal, 'f', 6);
+
+            polylineString += " ";
+          }
+          polylineStringList.append(polylineString);
+        }
+
+        int extrude = settings.value( "/qgis2google/poly/extrude" ).toInt();
+        int tessellate = settings.value( "/qgis2google/poly/tessellate" ).toInt();
+        out << "<Polygon>" << endl
+            << "<extrude>" << extrude << "</extrude>" << endl
+            << "<tessellate>" << tessellate << "</tessellate>" << endl
+            << "<gx:altitudeMode>" << altitudeMode << "</gx:altitudeMode>" << endl
+            << "<outerBoundaryIs>" << endl << "<LinearRing>" << endl
+            << "<coordinates>" << polylineStringList.at( 0 ) << "</coordinates>" << endl
+            << "</LinearRing>" << endl << "</outerBoundaryIs>" << endl;
+
+        for( int i = 1; i < polylineStringList.count(); i++ )
+        {
+          out << "<innerBoundaryIs>" << endl << "<LinearRing>" << endl
+              << "<coordinates>" << polylineStringList.at( i ) << "</coordinates>" << endl
+              << "</LinearRing>" << endl << "</innerBoundaryIs>" << endl;
+        }
+        out << "</Polygon>" << endl;
+      }
+      out << "</MultiGeometry>";
+
+      return result;
+    }
+  default:
+    QgsDebugMsg( "error: mGeometry type not recognized" );
+    return QString();
+  }
 }
 
 // generate name for temporary file

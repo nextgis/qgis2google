@@ -29,7 +29,6 @@ private:
   QString generateTempFileName();
   QFile *getTempFile();
 
-  QString convertWktToKml( QString wktFormat );
   QString convertWkbToKml( QgsGeometry *geometry );
 
   int attributeNameIndex( QgsVectorLayer *vlayer);
