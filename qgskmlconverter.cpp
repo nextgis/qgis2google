@@ -33,7 +33,7 @@ QgsKmlConverter::~QgsKmlConverter()
   }
 }
 
-void QgsKmlConverter::exportLayerToKmlFile( QgsVectorLayer *vlayer )
+QString QgsKmlConverter::exportLayerToKmlFile( QgsVectorLayer *vlayer )
 {
   if ( vlayer )
   {
@@ -46,77 +46,31 @@ void QgsKmlConverter::exportLayerToKmlFile( QgsVectorLayer *vlayer )
     vlayer->invertSelection();
     QgsApplication::restoreOverrideCursor();
 
-    exportFeaturesToKmlFile( vlayer, featureList );
+    return exportFeaturesToKmlFile( vlayer, featureList );
   }
-//  return QStringList();
+  return QString();
 }
 
-void QgsKmlConverter::exportFeaturesToKmlFile( QgsVectorLayer *vlayer, const QgsFeatureList &flist )
+QString QgsKmlConverter::exportFeaturesToKmlFile( QgsVectorLayer *vlayer, const QgsFeatureList &flist )
 {
   QgsApplication::setOverrideCursor( QCursor( Qt::WaitCursor ) );
+  QFile *tempFile = getTempFile();
+  if ( !tempFile->exists() )
+    return QString();
 
-//  QFile *tempFile = getTempFile();
-//  if ( !tempFile->exists() )
-//    return QStringList();
-//
-//  QStringList tempFileNamesList;
-//  tempFileNamesList.append(tempFile->fileName());
-//
-//  // set codec for kml file
-//  QTextCodec *codec = QTextCodec::codecForName( "UTF-8" );
-//  QTextStream out( tempFile );
-//
-//  out.setAutoDetectUnicode( false );
-//  out.setCodec( codec );
-//
-//  out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl
-//      << "<kml xmlns=\"http://earth.google.com/kml/2.2\"" << endl
-//      << "xmlns:gx=\"http://www.google.com/kml/ext/2.2\">" << endl;
-//
-//  out << "<Document>" << endl
-//      << "<name>" << removeEscapeChars( vlayer->name() ) << "</name>" << endl;
-//
-//  const QgsRenderer *renderer = vlayer->renderer();
-//  QList< QgsSymbol *> symbols = renderer->symbols();
-//  QString styleId = "styleOf-" + vlayer->name();
-//  bool bSingleSymbol = renderer->name() == "Single Symbol";
-//  bool bUniqueValue = renderer->name() == "Unique Value";
-//
-//  QSettings settings;
-//  bool bOverideUniqueValue = settings.value( "/qgis2google/overridelayerstyle" ).toBool();
-//  if ( bOverideUniqueValue )
-//  {
-//    bSingleSymbol = true;
-//    bUniqueValue = false;
-//  }
-//
-//  QString kmlStyle;
-//  if ( bSingleSymbol )
-//  {
-//    QList<QgsSymbol *> symbols = vlayer->renderer()->symbols();
-//    // read default values for kml from symbology
-//    QgsSymbol *symbol = symbols.first();
-//    if ( !symbol )
-//      return "";
-//    // create style kml for one symbol and convert getted line to html (e.g. replace & to &amp;)
-//    kmlStyle = styleKmlSingleSymbol( vlayer->getTransparency(), symbol, styleId, vlayer->geometryType() );
-//  }
-//  else if ( bUniqueValue )
-//  {
-//    // create style kml for many symbols and convert getted line to html (e.g. replace & to &amp;)
-//    kmlStyle = styleKmlUniqueValue( vlayer->getTransparency(), styleId, symbols,
-//                                    vlayer->geometryType() );
-//  }
-//  else
-//  {
-//    // dont process other renderers symbols
-//    return "";
-//  }
-//  out << removeEscapeChars( kmlStyle ) << endl;
-  QTextStream *out;
-  QString tempFileName = createTempFileAndOutput(out);
-  if (!out)
-    return;// QStringList();
+  // set codec for kml file
+  QTextCodec *codec = QTextCodec::codecForName( "UTF-8" );
+  QTextStream out( tempFile );
+
+  out.setAutoDetectUnicode( false );
+  out.setCodec( codec );
+
+  out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl
+      << "<kml xmlns=\"http://earth.google.com/kml/2.2\"" << endl
+      << "xmlns:gx=\"http://www.google.com/kml/ext/2.2\">" << endl;
+
+  out << "<Document>" << endl
+      << "<name>" << removeEscapeChars( vlayer->name() ) << "</name>" << endl;
 
   const QgsRenderer *renderer = vlayer->renderer();
   QList< QgsSymbol *> symbols = renderer->symbols();
@@ -124,10 +78,33 @@ void QgsKmlConverter::exportFeaturesToKmlFile( QgsVectorLayer *vlayer, const Qgs
   bool bSingleSymbol = renderer->name() == "Single Symbol";
   bool bUniqueValue = renderer->name() == "Unique Value";
 
-  writeHeadAndStyleInKmlFile(out, renderer, symbols, vlayer->name(),
-                             styleId, bSingleSymbol, bUniqueValue,
-                             vlayer->getTransparency(),
-                             vlayer->geometryType());
+  QSettings settings;
+  bool bOverideUniqueValue = settings.value( "/qgis2google/overridelayerstyle" ).toBool();
+  if ( bOverideUniqueValue )
+  {
+    bSingleSymbol = true;
+    bUniqueValue = false;
+  }
+
+  QString kmlStyle;
+  if ( bSingleSymbol )
+  {
+    QList<QgsSymbol *> symbols = vlayer->renderer()->symbols();
+    // read default values for kml from symbology
+    QgsSymbol *symbol = symbols.first();
+    // create style kml for one symbol and convert getted line to html (e.g. replace & to &amp;)
+    if ( symbol )
+      out << styleKmlSingleSymbol( vlayer->getTransparency(), symbol, styleId, vlayer->geometryType() ) << endl;
+  }
+  else if ( bUniqueValue )
+  {
+    // create style kml for many symbols and convert getted line to html (e.g. replace & to &amp;)
+    out << styleKmlUniqueValue( vlayer->getTransparency(), styleId, symbols, vlayer->geometryType() ) << endl;
+  }
+  else
+  {
+    // dont process other renderers symbols
+  }
 
   // export eatch feature to kml format
   foreach ( QgsFeature feature, flist )
@@ -135,57 +112,46 @@ void QgsKmlConverter::exportFeaturesToKmlFile( QgsVectorLayer *vlayer, const Qgs
     QgsGeometry *geometry = feature.geometry();
     if ( geometry )
     {
-      *out << "<Placemark>" << endl;
+      out << "<Placemark>" << endl;
       // try to find name of feature from attribute table and set one for kml's placemark as html
       if ( bSingleSymbol )
       {
-        *out << placemarkNameKml( vlayer, feature.attributeMap() ) << endl;
+        out << placemarkNameKml( vlayer, feature.attributeMap() ) << endl;
       }
       else // Unique Value
       {
         const QgsUniqueValueRenderer *urenderer = dynamic_cast<const QgsUniqueValueRenderer *>( renderer );
         QgsSymbol *symbol = symbolForFeature( &feature, urenderer );
         if ( symbol )
-          *out << "<name>" + removeEscapeChars( symbol->lowerValue() ) + "</name>" << endl;
+          out << "<name>" + removeEscapeChars( symbol->lowerValue() ) + "</name>" << endl;
       }
 
       // try to find placemark description in attribute table (it should be in html format)
-      *out << placemarkDescriptionKml( vlayer, feature.attributeMap() ) << endl;
+      out << placemarkDescriptionKml( vlayer, feature.attributeMap() ) << endl;
 
       if ( bUniqueValue )
       {
         const QgsUniqueValueRenderer *uniqValRenderer = dynamic_cast<const QgsUniqueValueRenderer *>( renderer );
         QgsSymbol *symbol = symbolForFeature( &feature, uniqValRenderer );
-        styleId = featureStyleId( symbol, styleId );
+        QString uniqStyleId = featureStyleId( symbol, styleId );
+        out << "<styleUrl>" << removeEscapeChars( uniqStyleId ) << "</styleUrl>" << endl;
       }
-      *out << "<styleUrl>" << removeEscapeChars( styleId ) << "</styleUrl>" << endl;
+      else
+      {
+        out << "<styleUrl>" << removeEscapeChars( styleId ) << "</styleUrl>" << endl;
+      }
 
       // convert wkt to kml and write to kml file
-      *out << convertWkbToKml(geometry) << endl;
-      *out << "</Placemark>" << endl;
-
-      if (QFileInfo(tempFileName).size() > 10485760)
-      {
-        *out << "</Document>" << endl
-            << "</kml>" << endl;
-        emit kmlFileCreated(tempFileName);
-
-        tempFileName = createTempFileAndOutput(out);
-        writeHeadAndStyleInKmlFile(out, renderer, symbols, vlayer->name(),
-                                   styleId, bSingleSymbol, bUniqueValue,
-                                   vlayer->getTransparency(),
-                                   vlayer->geometryType());
-      }
+      out << convertWkbToKml(geometry) << endl;
+      out << "</Placemark>" << endl;
     }
   }
 
-  *out << "</Document>" << endl
+  out << "</Document>" << endl
       << "</kml>" << endl;
 
   QgsApplication::restoreOverrideCursor();
-  emit kmlFileCreated(tempFileName);
-
-//  return "";//tempFileNamesList;
+  return tempFile->fileName();
 }
 
 // try to find feature's name in attribute table
@@ -220,7 +186,7 @@ QString QgsKmlConverter::placemarkNameKml( QgsVectorLayer *vlayer, QgsAttributeM
       out << "<name>" << name << "</name>";
     }
   }
-  return removeEscapeChars( result );
+  return removeEscapeChars(result);
 }
 
 // try to find feature's description in attribute table
@@ -369,7 +335,7 @@ QString QgsKmlConverter::styleKmlSingleSymbol( int transp, QgsSymbol *symbol, QS
 
   out << "</Style>";
 
-  return result;
+  return removeEscapeChars(result);
 }
 
 // create string with kml style description section for each symbols, all values takes from settings
@@ -426,7 +392,7 @@ QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList
 
     out << "</Style>";
   }
-  return result;
+  return removeEscapeChars(result);
 }
 
 QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
@@ -650,66 +616,6 @@ QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
     QgsDebugMsg( "error: mGeometry type not recognized" );
     return QString();
   }
-}
-
-QString QgsKmlConverter::createTempFileAndOutput(QTextStream *&out)
-{
-  QFile *tempFile = getTempFile();
-  if ( !tempFile->exists() )
-    return 0;
-
-  QString tempFileName = tempFile->fileName();
-
-  // set codec for kml file
-  QTextCodec *codec = QTextCodec::codecForName( "UTF-8" );
-  out = new QTextStream( tempFile );
-
-  out->setAutoDetectUnicode( false );
-  out->setCodec( codec );
-
-  return tempFileName;
-}
-
-void QgsKmlConverter::writeHeadAndStyleInKmlFile( QTextStream *out, const QgsRenderer *renderer,
-                                                  QList<QgsSymbol *> symbols, QString layerName,
-                                                  QString styleId, bool bSingleSymbol, bool bUniqueValue,
-                                                  int transp, QGis::GeometryType geomType )
-{
-  *out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl
-      << "<kml xmlns=\"http://earth.google.com/kml/2.2\"" << endl
-      << "xmlns:gx=\"http://www.google.com/kml/ext/2.2\">" << endl;
-
-  *out << "<Document>" << endl
-      << "<name>" << removeEscapeChars( layerName ) << "</name>" << endl;
-
-  QSettings settings;
-  bool bOverideUniqueValue = settings.value( "/qgis2google/overridelayerstyle" ).toBool();
-  if ( bOverideUniqueValue )
-  {
-    bSingleSymbol = true;
-    bUniqueValue = false;
-  }
-
-  QString kmlStyle;
-  if ( bSingleSymbol )
-  {
-    QList<QgsSymbol *> symbols = renderer->symbols();
-    // read default values for kml from symbology
-    QgsSymbol *symbol = symbols.first();
-    // create style kml for one symbol and convert getted line to html (e.g. replace & to &amp;)
-    if ( !symbol )
-      kmlStyle = styleKmlSingleSymbol( transp, symbol, styleId, geomType );
-  }
-  else if ( bUniqueValue )
-  {
-    // create style kml for many symbols and convert getted line to html (e.g. replace & to &amp;)
-    kmlStyle = styleKmlUniqueValue( transp, styleId, symbols, geomType );
-  }
-  else
-  {
-    // dont process other renderers symbols
-  }
-  *out << removeEscapeChars( kmlStyle ) << endl;
 }
 
 // generate name for temporary file
