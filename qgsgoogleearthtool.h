@@ -27,6 +27,9 @@ protected:
   void canvasMoveEvent( QMouseEvent *e );
   void canvasReleaseEvent( QMouseEvent *e );
 
+private slots:
+  void openKmlFile(QString fileName);
+
 private:
   void selecteFeatures( QgsVectorLayer *vlayer, const QgsRectangle &rect );
   QgsFeatureList selecteManyFeatures( QgsVectorLayer *vlayer, const QRect &rect );

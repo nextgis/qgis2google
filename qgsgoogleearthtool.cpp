@@ -20,6 +20,8 @@ QgsGoogleEarthTool::QgsGoogleEarthTool( QgsMapCanvas *canvas )
     kmlConverter( new QgsKmlConverter )
 {
   mCursor = QCursor( Qt::PointingHandCursor );
+
+  connect(kmlConverter, SIGNAL(kmlFileCreated(QString)), this, SLOT(openKmlFile(QString)));
 }
 
 QgsGoogleEarthTool::~QgsGoogleEarthTool()
@@ -81,11 +83,14 @@ void QgsGoogleEarthTool::canvasReleaseEvent( QMouseEvent *e )
     }
 
     // export selected features to kml
-    QString tempFileName = kmlConverter->exportFeaturesToKmlFile( vlayer, featureList );
+    /*QStringList tempFileNamesList = */kmlConverter->exportFeaturesToKmlFile( vlayer, featureList );
 
-    // open kml in Google Earth
-    if ( !tempFileName.isEmpty() && QFileInfo( tempFileName ).exists() )
-      QDesktopServices::openUrl( QUrl( "file:///" + tempFileName ) );
+    // open kmls in Google Earth
+//    foreach (QString fn, tempFileNamesList)
+//    {
+//      if ( !fn.isEmpty() && QFileInfo( fn).exists() )
+//        QDesktopServices::openUrl( QUrl( "file:///" + fn ) );
+//    }
   }
   else
   {
@@ -104,9 +109,13 @@ void QgsGoogleEarthTool::exportLayerToKml()
   if ( vlayer )
   {
     // export active layer to kml
-    QString tempFileName = kmlConverter->exportLayerToKmlFile( vlayer );
+    /*QStringList tempFileNamesList = */kmlConverter->exportLayerToKmlFile( vlayer );
     // open kml in Google Earth
-    QDesktopServices::openUrl( QUrl( "file:///" + tempFileName ) );
+//    foreach (QString fn, tempFileNamesList)
+//    {
+//      if ( !fn.isEmpty() && QFileInfo( fn).exists() )
+//        QDesktopServices::openUrl( QUrl( "file:///" + fn ) );
+//    }
   }
 }
 
@@ -159,6 +168,12 @@ QgsFeatureList QgsGoogleEarthTool::selecteManyFeatures( QgsVectorLayer *vlayer, 
 
   selecteFeatures( vlayer, searchRect );
   return vlayer->selectedFeatures();
+}
+
+void QgsGoogleEarthTool::openKmlFile(QString fileName)
+{
+  if ( !fileName.isEmpty() && QFileInfo( fileName).exists() )
+    QDesktopServices::openUrl( QUrl( "file:///" + fileName ) );
 }
 
 void QgsGoogleEarthTool::selecteFeatures( QgsVectorLayer *vlayer, const QgsRectangle &rect )
