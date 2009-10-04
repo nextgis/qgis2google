@@ -14,27 +14,18 @@ class QgsSymbol;
 class QgsVectorLayer;
 class QgsUniqueValueRenderer;
 
-class QgsKmlConverter : public QObject
+class QgsKmlConverter
 {
-  Q_OBJECT
-//  Q_DECLARE_TR_FUNCTIONS(QgsKmlConverter);
+  Q_DECLARE_TR_FUNCTIONS(QgsKmlConverter);
 
 public:
   QgsKmlConverter();
   ~QgsKmlConverter();
 
-  void exportLayerToKmlFile( QgsVectorLayer *vlayer );
-  void exportFeaturesToKmlFile( QgsVectorLayer *vlayer, const QgsFeatureList &flist );
-
-signals:
-  void kmlFileCreated(QString fileName);
+  QString exportLayerToKmlFile( QgsVectorLayer *vlayer );
+  QString exportFeaturesToKmlFile( QgsVectorLayer *vlayer, const QgsFeatureList &flist );
 
 private:
-  QString createTempFileAndOutput(QTextStream *&out);
-  void writeHeadAndStyleInKmlFile( QTextStream *out, const QgsRenderer *renderer,
-                                   QList<QgsSymbol *> symbols, QString layerName,
-                                   QString styleId, bool bSingleSymbol, bool bUniqueValue,
-                                   int transp, QGis::GeometryType geomType );
   QString generateTempFileName();
   QFile *getTempFile();
 

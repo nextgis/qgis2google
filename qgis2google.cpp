@@ -245,7 +245,7 @@ void qgis2google::about()
   QVBoxLayout *lines = new QVBoxLayout( &dlg );
   lines->addWidget( new QLabel( "<b>" + sPluginVersion + "</b>" ) );
   lines->addWidget( new QLabel( tr( "<b>Developers:</b>" ) ) );
-  lines->addWidget( new QLabel( "    Jack iRox" ) );
+  lines->addWidget( new QLabel( "    Jack R" ) );
   lines->addWidget( new QLabel( "    Maxim Dubinin" ) );
   lines->addWidget( new QLabel( "    sploid" ) );
   lines->addWidget( new QLabel( tr( "<b>Link:</b>" ) ) );

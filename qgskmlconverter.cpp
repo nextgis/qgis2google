@@ -134,11 +134,11 @@ QString QgsKmlConverter::exportFeaturesToKmlFile( QgsVectorLayer *vlayer, const 
         const QgsUniqueValueRenderer *uniqValRenderer = dynamic_cast<const QgsUniqueValueRenderer *>( renderer );
         QgsSymbol *symbol = symbolForFeature( &feature, uniqValRenderer );
         QString uniqStyleId = featureStyleId( symbol, styleId );
-        out << "<styleUrl>" << removeEscapeChars( uniqStyleId ) << "</styleUrl>" << endl;
+        out << "<styleUrl>" << uniqStyleId << "</styleUrl>" << endl;
       }
       else
       {
-        out << "<styleUrl>" << removeEscapeChars( styleId ) << "</styleUrl>" << endl;
+        out << "<styleUrl>" << styleId << "</styleUrl>" << endl;
       }
 
       // convert wkt to kml and write to kml file
@@ -255,7 +255,7 @@ QgsSymbol *QgsKmlConverter::symbolForFeature( QgsFeature *feature, const QgsUniq
 QString QgsKmlConverter::featureStyleId( QgsSymbol *symbol, QString styleId )
 {
   if ( symbol && !symbol->lowerValue().isEmpty() )
-    return styleId + STYLEIDDELIMIT + symbol->lowerValue();
+    return removeEscapeChars(styleId + STYLEIDDELIMIT + symbol->lowerValue());
   else
     return "";
 }
@@ -335,7 +335,7 @@ QString QgsKmlConverter::styleKmlSingleSymbol( int transp, QgsSymbol *symbol, QS
 
   out << "</Style>";
 
-  return removeEscapeChars(result);
+  return result;
 }
 
 // create string with kml style description section for each symbols, all values takes from settings
@@ -392,7 +392,7 @@ QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList
 
     out << "</Style>";
   }
-  return removeEscapeChars(result);
+  return result;
 }
 
 QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
