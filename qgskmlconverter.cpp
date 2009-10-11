@@ -410,13 +410,13 @@ QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
     {
       int altitudeVal = settings.value( "/qgis2google/point/altitudevalue" ).toInt();
       QString altitudeMode = settings.value( "/qgis2google/point/altitudemode" ).toString();
-      hasZValue = altitudeMode != "clampToGround" && altitudeMode != "clampToSeaFloor" && altitudeVal != -1;
+      hasZValue = altitudeMode != "clampToGround" && altitudeMode != "clampToSeaFloor";
 
       QgsPoint wkbPoint = geometry->asPoint();
       QString pointString = QString::number(wkbPoint.x(), 'f', 6) + "," +
                             QString::number(wkbPoint.y(), 'f', 6);
       if ( hasZValue )
-        pointString.append("," + QString::number( altitudeVal, 'f', 6 ));
+        pointString.append(QString(",%1").arg(altitudeVal));
 
       int extrude = settings.value( "/qgis2google/point/extrude" ).toInt();
       out << "<Point>" << endl
@@ -441,10 +441,11 @@ QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
         polylineString += QString::number(pt.x(), 'f', 6) + "," +
                           QString::number(pt.y(), 'f', 6);
         if (hasZValue)
-          polylineString += QString::number(altitudeVal, 'f', 6);
+		  polylineString += QString(",%1").arg(altitudeVal);
 
         polylineString += " ";
       }
+	  polylineString.chop(1);
 
       int extrude = settings.value( "/qgis2google/line/extrude" ).toInt();
       int tessellate = settings.value( "/qgis2google/line/tessellate" ).toInt();
@@ -474,10 +475,11 @@ QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
           polylineString += QString::number(pt.x(), 'f', 6) + "," +
                             QString::number(pt.y(), 'f', 6);
           if (hasZValue)
-            polylineString += QString::number(altitudeVal, 'f', 6);
+            polylineString += QString(",%1").arg(altitudeVal);
 
           polylineString += " ";
         }
+		polylineString.chop(1);
         polylineStringList.append(polylineString);
       }
 
@@ -515,7 +517,7 @@ QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
         QString pointString = QString::number(pt.x(), 'f', 6) + "," +
                               QString::number(pt.y(), 'f', 6);
         if ( hasZValue )
-          pointString.append("," + QString::number( altitudeVal, 'f', 6 ));
+          pointString.append(QString(",%1").arg(altitudeVal));
 
         int extrude = settings.value( "/qgis2google/point/extrude" ).toInt();
         out << "<Point>" << endl
@@ -545,10 +547,11 @@ QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
           polylineString += QString::number(pt.x(), 'f', 6) + "," +
                             QString::number(pt.y(), 'f', 6);
           if (hasZValue)
-            polylineString += QString::number(altitudeVal, 'f', 6);
+            polylineString += QString(",%1").arg(altitudeVal);
 
           polylineString += " ";
         }
+		polylineString.chop(1);
 
         int extrude = settings.value( "/qgis2google/line/extrude" ).toInt();
         int tessellate = settings.value( "/qgis2google/line/tessellate" ).toInt();
@@ -583,13 +586,14 @@ QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
             polylineString += QString::number(pt.x(), 'f', 6) + "," +
                               QString::number(pt.y(), 'f', 6);
             if (hasZValue)
-              polylineString += QString::number(altitudeVal, 'f', 6);
+              polylineString += QString(",%1").arg(altitudeVal);
 
             polylineString += " ";
           }
+		  polylineString.chop(1);
           polylineStringList.append(polylineString);
         }
-
+		
         int extrude = settings.value( "/qgis2google/poly/extrude" ).toInt();
         int tessellate = settings.value( "/qgis2google/poly/tessellate" ).toInt();
         out << "<Polygon>" << endl

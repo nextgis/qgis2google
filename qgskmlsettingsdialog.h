@@ -25,6 +25,7 @@ protected:
 
 private slots:
   void on_buttonBox_accepted();
+  void on_buttonBox_rejected();
 
   void on_pbIconColor_clicked();
   void on_pbLabelColor_clicked();

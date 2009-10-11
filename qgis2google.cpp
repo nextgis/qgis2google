@@ -51,7 +51,7 @@
 
 static const char * const sIdent = "$Id: plugin.cpp 9327 2008-09-14 11:18:44Z jef $";
 static const QString sDescription = QObject::tr( "Quickly send selected objects or layer to Google Earth" );
-static const QString sPluginVersion = QObject::tr( "Version 2.7" );
+static const QString sPluginVersion = QObject::tr( "Version 2.0" );
 static const QString sName = QObject::tr( "qgis2google2" ) + " (" + sPluginVersion + ")";
 static const QgisPlugin::PLUGINTYPE sPluginType = QgisPlugin::UI;
 
@@ -222,18 +222,18 @@ void qgis2google::setDefaultSettings( QgsMapLayer *layer )
     }
 
     settings.setValue( "/qgis2google/point/extrude", 0 );
-    settings.setValue( "/qgis2google/point/altitudemode", "clampToGround" );
-    settings.setValue( "/qgis2google/point/altitudevalue", -1 );
+    settings.setValue( "/qgis2google/point/altitudemode", "relativeToGround" );
+    settings.setValue( "/qgis2google/point/altitudevalue", 0 );
 
     settings.setValue( "/qgis2google/line/extrude", 0 );
     settings.setValue( "/qgis2google/line/tessellate", 0 );
-    settings.setValue( "/qgis2google/line/altitudemode", "clampToGround" );
-    settings.setValue( "/qgis2google/line/altitudevalue", -1 );
+    settings.setValue( "/qgis2google/line/altitudemode", "relativeToGround" );
+    settings.setValue( "/qgis2google/line/altitudevalue", 0 );
 
     settings.setValue( "/qgis2google/poly/extrude", 0 );
     settings.setValue( "/qgis2google/poly/tessellate", 0 );
-    settings.setValue( "/qgis2google/poly/altitudemode", "clampToGround" );
-    settings.setValue( "/qgis2google/poly/altitudevalue", -1 );
+    settings.setValue( "/qgis2google/poly/altitudemode", "relativeToGround" );
+    settings.setValue( "/qgis2google/poly/altitudevalue", 0 );
   }
 }
 
