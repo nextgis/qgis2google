@@ -195,7 +195,7 @@ void QgsKmlSettingsDialog::readSettings()
 
   tmpInt = settings.value( "/qgis2google/point/extrude", 0 ).toInt();
   m_ui->cbPointExtrude->setCurrentIndex( m_ui->cbPointExtrude->findText( boolToQString( tmpInt ) ) );
-  tmpStr = settings.value( "/qgis2google/point/altitudemode", "relativeToGround" ).toString();
+  tmpStr = settings.value( "/qgis2google/point/altitudemode", "clampToGround" ).toString();
   m_ui->cbPointAltitudeMode->setCurrentIndex( m_ui->cbPointAltitudeMode->findData( tmpStr ) );
   tmpInt = settings.value( "/qgis2google/point/altitudevalue", 0 ).toInt();
   m_ui->sbxPointAltitude->setValue( tmpInt );
@@ -214,7 +214,7 @@ void QgsKmlSettingsDialog::readSettings()
   m_ui->cbLineExtrude->setCurrentIndex( m_ui->cbLineExtrude->findText( boolToQString( tmpInt ) ) );
   tmpInt = settings.value( "/qgis2google/line/tessellate", 0 ).toBool();
   m_ui->cbLineTessellate->setCurrentIndex( m_ui->cbLineTessellate->findText( boolToQString( tmpInt ) ) );
-  tmpStr = settings.value( "/qgis2google/line/altitudemode", "relativeToGround" ).toString();
+  tmpStr = settings.value( "/qgis2google/line/altitudemode", "clampToGround" ).toString();
   m_ui->cbLineAltitudeMode->setCurrentIndex( m_ui->cbLineAltitudeMode->findData( tmpStr ) );
   tmpInt = settings.value( "/qgis2google/line/altitudevalue", 0 ).toInt();
   m_ui->sbxLineAltitude->setValue( tmpInt );
@@ -231,7 +231,7 @@ void QgsKmlSettingsDialog::readSettings()
   m_ui->cbPolyExtrude->setCurrentIndex( m_ui->cbPolyExtrude->findText( boolToQString( tmpInt ) ) );
   tmpInt = settings.value( "/qgis2google/poly/tessellate", 0 ).toBool();
   m_ui->cbPolyTessellate->setCurrentIndex( m_ui->cbPolyTessellate->findText( boolToQString( tmpInt ) ) );
-  tmpStr = settings.value( "/qgis2google/poly/altitudemode", "relativeToGround" ).toString();
+  tmpStr = settings.value( "/qgis2google/poly/altitudemode", "clampToGround" ).toString();
   m_ui->cbPolyAltitudeMode->setCurrentIndex( m_ui->cbPolyAltitudeMode->findData( tmpStr ) );
   tmpInt = settings.value( "/qgis2google/poly/altitudevalue", 0 ).toInt();
   m_ui->sbxPolyAltitude->setValue( tmpInt );

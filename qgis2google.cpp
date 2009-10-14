@@ -222,17 +222,17 @@ void qgis2google::setDefaultSettings( QgsMapLayer *layer )
     }
 
     settings.setValue( "/qgis2google/point/extrude", 0 );
-    settings.setValue( "/qgis2google/point/altitudemode", "relativeToGround" );
+    settings.setValue( "/qgis2google/point/altitudemode", "clampToGround" );
     settings.setValue( "/qgis2google/point/altitudevalue", 0 );
 
     settings.setValue( "/qgis2google/line/extrude", 0 );
     settings.setValue( "/qgis2google/line/tessellate", 0 );
-    settings.setValue( "/qgis2google/line/altitudemode", "relativeToGround" );
+    settings.setValue( "/qgis2google/line/altitudemode", "clampToGround" );
     settings.setValue( "/qgis2google/line/altitudevalue", 0 );
 
     settings.setValue( "/qgis2google/poly/extrude", 0 );
     settings.setValue( "/qgis2google/poly/tessellate", 0 );
-    settings.setValue( "/qgis2google/poly/altitudemode", "relativeToGround" );
+    settings.setValue( "/qgis2google/poly/altitudemode", "clampToGround" );
     settings.setValue( "/qgis2google/poly/altitudevalue", 0 );
   }
 }
