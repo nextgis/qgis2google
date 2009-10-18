@@ -990,7 +990,7 @@ p, li { white-space: pre-wrap; }
       <string>Check to override layer settings/Uncheck to use layer settings</string>
      </property>
      <property name="text">
-      <string>Override layer current style settings</string>
+      <string>Override layer's current style settings</string>
      </property>
     </widget>
    </item>
