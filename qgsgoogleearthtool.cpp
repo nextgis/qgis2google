@@ -85,7 +85,7 @@ void QgsGoogleEarthTool::canvasReleaseEvent( QMouseEvent *e )
 
     // open kml in Google Earth
     if ( !tempFileName.isEmpty() && QFileInfo( tempFileName ).exists() )
-      QDesktopServices::openUrl( QUrl( "file:///" + tempFileName ) );
+      QDesktopServices::openUrl( QUrl::fromLocalFile( tempFileName ) );
   }
   else
   {

@@ -36,8 +36,7 @@ private:
 
   QString styleKmlSingleSymbol( int transp, QgsSymbol *symbol, QString styleId,
                                 QGis::GeometryType typeOfFeature );
-  QString styleKmlUniqueValue( int transp, QString styleId, QList<QgsSymbol *> symbols,
-                               QGis::GeometryType typeOfFeature);
+  QString styleKmlUniqueValue( int transp, QString styleId, QList<QgsSymbol *> symbols );
   QString placemarkNameKml( QgsVectorLayer *vlayer, QgsAttributeMap attrMap );
   QString placemarkDescriptionKml( QgsVectorLayer *vlayer, QgsAttributeMap attrMap );
 

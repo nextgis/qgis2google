@@ -92,14 +92,14 @@ QString QgsKmlConverter::exportFeaturesToKmlFile( QgsVectorLayer *vlayer, const 
     QList<QgsSymbol *> symbols = vlayer->renderer()->symbols();
     // read default values for kml from symbology
     QgsSymbol *symbol = symbols.first();
-    // create style kml for one symbol and convert getted line to html (e.g. replace & to &amp;)
+    // create style kml for one symbol
     if ( symbol )
       out << styleKmlSingleSymbol( vlayer->getTransparency(), symbol, styleId, vlayer->geometryType() ) << endl;
   }
   else if ( bUniqueValue )
   {
-    // create style kml for many symbols and convert getted line to html (e.g. replace & to &amp;)
-    out << styleKmlUniqueValue( vlayer->getTransparency(), styleId, symbols, vlayer->geometryType() ) << endl;
+    // create style kml for many symbols
+    out << styleKmlUniqueValue( vlayer->getTransparency(), styleId, symbols ) << endl;
   }
   else
   {
@@ -339,19 +339,15 @@ QString QgsKmlConverter::styleKmlSingleSymbol( int transp, QgsSymbol *symbol, QS
 }
 
 // create string with kml style description section for each symbols, all values takes from settings
-QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList<QgsSymbol *> symbols,
-                                              QGis::GeometryType typeOfFeature )
+QString QgsKmlConverter::styleKmlUniqueValue( int transp, QString styleId, QList<QgsSymbol *> symbols )
 {
   double scale = 1.0;
-  QSettings settings;
   QString result, colorMode( "normal" );
   QTextStream out( &result );
   QColor color, fillColor;
 
   foreach( QgsSymbol *symbol, symbols )
   {
-    QString symbolName;
-
     out << endl << "<Style id=\"" << featureStyleId( symbol, styleId ) << "\">" << endl;
 
     color = symbol->color();
@@ -441,11 +437,11 @@ QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
         polylineString += QString::number(pt.x(), 'f', 6) + "," +
                           QString::number(pt.y(), 'f', 6);
         if (hasZValue)
-		  polylineString += QString(",%1").arg(altitudeVal);
+          polylineString += QString(",%1").arg(altitudeVal);
 
         polylineString += " ";
       }
-	  polylineString.chop(1);
+      polylineString.chop(1);
 
       int extrude = settings.value( "/qgis2google/line/extrude" ).toInt();
       int tessellate = settings.value( "/qgis2google/line/tessellate" ).toInt();
@@ -457,7 +453,7 @@ QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
           << "</LineString>";
 
       return result;
-    }    
+    }
   case QGis::WKBPolygon25D:
   case QGis::WKBPolygon:
     {
@@ -479,7 +475,7 @@ QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
 
           polylineString += " ";
         }
-		polylineString.chop(1);
+        polylineString.chop(1);
         polylineStringList.append(polylineString);
       }
 
@@ -551,7 +547,7 @@ QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
 
           polylineString += " ";
         }
-		polylineString.chop(1);
+        polylineString.chop(1);
 
         int extrude = settings.value( "/qgis2google/line/extrude" ).toInt();
         int tessellate = settings.value( "/qgis2google/line/tessellate" ).toInt();
@@ -590,10 +586,10 @@ QString QgsKmlConverter::convertWkbToKml( QgsGeometry *geometry )
 
             polylineString += " ";
           }
-		  polylineString.chop(1);
+          polylineString.chop(1);
           polylineStringList.append(polylineString);
         }
-		
+
         int extrude = settings.value( "/qgis2google/poly/extrude" ).toInt();
         int tessellate = settings.value( "/qgis2google/poly/tessellate" ).toInt();
         out << "<Polygon>" << endl
