@@ -47,7 +47,11 @@ ADD_DEPENDENCIES (qgis2google_TARGET qgis2googleplugin)
 
 INCLUDE_DIRECTORIES(
      ${CMAKE_CURRENT_BINARY_DIR}
-     ../../core ../../core/raster ../../core/renderer ../../core/symbology
+     ../../core
+     ../../core/raster
+     ../../core/renderer
+     ../../core/symbology
+     ../../core/symbology-ng
      ../../gui
      ..
 )

@@ -26,6 +26,8 @@
 #include <qgsmapcanvas.h>
 #include <qgsmaplayer.h>
 #include <qgsrenderer.h>
+#include <qgsrendererv2.h>
+#include <qgssymbolv2.h>
 #include <qgssymbol.h>
 #include <qgsvectorlayer.h>
 
@@ -178,48 +180,102 @@ void qgis2google::setDefaultSettings( QgsMapLayer *layer )
   QgsVectorLayer *vlayer = dynamic_cast<QgsVectorLayer *>(layer);
   if ( vlayer )
   {
-    QList<QgsSymbol *> symbols = vlayer->renderer()->symbols();
-    if ( symbols.size() == 1 )
+    // which symbology used
+    if ( vlayer->isUsingRendererV2() )
     {
-      // read default values for kml from symbology
-      QgsSymbol *symbol = symbols.first();
-      if ( !symbol )
-        return;
-
-      int iOpacity, iOpacityPers;
-      QColor color, fillColor;
-
-      iOpacity = vlayer->getTransparency();
-      iOpacityPers = iOpacity * 100 / 255;
-
-      color = symbol->color();
-      color.setAlpha( iOpacity );
-      fillColor = symbol->fillColor();
-      fillColor.setAlpha( iOpacity );
-
-      settings.setValue( "/qgis2google/label/color", color );
-      settings.setValue( "/qgis2google/label/opacity", iOpacityPers );
-      settings.setValue( "/qgis2google/label/colormode", "normal" );
-      settings.setValue( "/qgis2google/label/scale", 1.0 );
-
-      settings.setValue( "/qgis2google/icon/color", fillColor );
-      settings.setValue( "/qgis2google/icon/opacity", iOpacityPers );
-      settings.setValue( "/qgis2google/icon/colormode", "normal" );
-      settings.setValue( "/qgis2google/icon/scale", 1.0 );
-
-      settings.setValue( "/qgis2google/line/color", color );
-      settings.setValue( "/qgis2google/line/opacity", iOpacityPers );
-      settings.setValue( "/qgis2google/line/colormode", "normal" );
-      settings.setValue( "/qgis2google/line/width", symbol->lineWidth() );
-
-      settings.setValue( "/qgis2google/poly/color", fillColor );
-      settings.setValue( "/qgis2google/poly/opacity", iOpacityPers );
-      settings.setValue( "/qgis2google/poly/colormode", "normal" );
-      int bPolyStyle = symbol->brush().style() != Qt::NoBrush;
-      settings.setValue( "/qgis2google/poly/fill", bPolyStyle );
-      bPolyStyle = symbol->pen().style() != Qt::NoPen;
-      settings.setValue( "/qgis2google/poly/outline", bPolyStyle );
+      QgsSymbolV2List symbols = vlayer->rendererV2()->symbols();
+      if ( symbols.size() == 1 )
+      {
+        QgsSymbolV2* symbol = symbols.first();
+        if ( !symbol )
+        {
+          return;
+        }
+        
+        int iOpacity, iOpacityPers;
+        QColor color, fillColor;
+    
+        iOpacity = symbol->alpha();
+        iOpacityPers = iOpacity * 100 / 255;
+    
+        color = symbol->color();
+        color.setAlpha( iOpacity );
+        fillColor = symbol->color();
+        fillColor.setAlpha( iOpacity );
+    
+        settings.setValue( "/qgis2google/label/color", color );
+        settings.setValue( "/qgis2google/label/opacity", iOpacityPers );
+        settings.setValue( "/qgis2google/label/colormode", "normal" );
+        settings.setValue( "/qgis2google/label/scale", 1.0 );
+    
+        settings.setValue( "/qgis2google/icon/color", fillColor );
+        settings.setValue( "/qgis2google/icon/opacity", iOpacityPers );
+        settings.setValue( "/qgis2google/icon/colormode", "normal" );
+        settings.setValue( "/qgis2google/icon/scale", 1.0 );
+    
+        settings.setValue( "/qgis2google/line/color", color );
+        settings.setValue( "/qgis2google/line/opacity", iOpacityPers );
+        settings.setValue( "/qgis2google/line/colormode", "normal" );
+        //settings.setValue( "/qgis2google/line/width", symbol->lineWidth() );
+        settings.setValue( "/qgis2google/line/width", 0.26 );
+    
+        settings.setValue( "/qgis2google/poly/color", fillColor );
+        settings.setValue( "/qgis2google/poly/opacity", iOpacityPers );
+        settings.setValue( "/qgis2google/poly/colormode", "normal" );
+        //int bPolyStyle = symbol->brush().style() != Qt::NoBrush;
+        int bPolyStyle = Qt::SolidPattern;
+        settings.setValue( "/qgis2google/poly/fill", bPolyStyle );
+        //bPolyStyle = symbol->pen().style() != Qt::NoPen;
+        bPolyStyle = Qt::SolidLine;
+        settings.setValue( "/qgis2google/poly/outline", bPolyStyle );
+      }      
     }
+    else
+    {
+      QList<QgsSymbol *> symbols = vlayer->renderer()->symbols();
+      if ( symbols.size() == 1 )
+      {
+        // read default values for kml from symbology
+        QgsSymbol *symbol = symbols.first();
+        if ( !symbol )
+          return;
+    
+        int iOpacity, iOpacityPers;
+        QColor color, fillColor;
+    
+        iOpacity = vlayer->getTransparency();
+        iOpacityPers = iOpacity * 100 / 255;
+    
+        color = symbol->color();
+        color.setAlpha( iOpacity );
+        fillColor = symbol->fillColor();
+        fillColor.setAlpha( iOpacity );
+    
+        settings.setValue( "/qgis2google/label/color", color );
+        settings.setValue( "/qgis2google/label/opacity", iOpacityPers );
+        settings.setValue( "/qgis2google/label/colormode", "normal" );
+        settings.setValue( "/qgis2google/label/scale", 1.0 );
+    
+        settings.setValue( "/qgis2google/icon/color", fillColor );
+        settings.setValue( "/qgis2google/icon/opacity", iOpacityPers );
+        settings.setValue( "/qgis2google/icon/colormode", "normal" );
+        settings.setValue( "/qgis2google/icon/scale", 1.0 );
+    
+        settings.setValue( "/qgis2google/line/color", color );
+        settings.setValue( "/qgis2google/line/opacity", iOpacityPers );
+        settings.setValue( "/qgis2google/line/colormode", "normal" );
+        settings.setValue( "/qgis2google/line/width", symbol->lineWidth() );
+    
+        settings.setValue( "/qgis2google/poly/color", fillColor );
+        settings.setValue( "/qgis2google/poly/opacity", iOpacityPers );
+        settings.setValue( "/qgis2google/poly/colormode", "normal" );
+        int bPolyStyle = symbol->brush().style() != Qt::NoBrush;
+        settings.setValue( "/qgis2google/poly/fill", bPolyStyle );
+        bPolyStyle = symbol->pen().style() != Qt::NoPen;
+        settings.setValue( "/qgis2google/poly/outline", bPolyStyle );
+      }
+    }
+    
 
     settings.setValue( "/qgis2google/point/extrude", 0 );
     settings.setValue( "/qgis2google/point/altitudemode", "clampToGround" );
